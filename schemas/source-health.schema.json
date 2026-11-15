@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/firepick/source-health.schema.json",
+  "title": "Firepick source health report",
+  "type": "object",
+  "required": ["generatedAt", "total", "onlineCount", "results"],
+  "properties": {
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "keywords": { "type": "array", "items": { "type": "string" } },
+    "total": { "type": "integer", "minimum": 0 },
+    "onlineCount": { "type": "integer", "minimum": 0 },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "name", "api", "online", "score"],
+        "properties": {
+          "key": { "type": "string" },
+          "name": { "type": "string" },
+          "api": { "type": "string", "format": "uri" },
+          "online": { "type": "boolean" },
+          "score": { "type": "number" },
+          "listOK": { "type": "boolean" },
+          "searchHits": { "type": "integer" },
+          "detailOK": { "type": "boolean" },
+          "streamOK": { "type": "boolean" },
+          "quality": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "properties": {
+                  "width": { "type": "integer" },
+                  "height": { "type": "integer" },
+                  "bandwidth": { "type": "integer" }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

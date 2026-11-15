@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Firepick Source Monitor</title>
+  <style>
+    :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    body { margin: 0; background: #111216; color: #eee; }
+    main { width: min(1120px, calc(100% - 32px)); margin: 40px auto; }
+    h1 { margin-bottom: 6px; }
+    .muted { color: #989baa; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 24px 0; }
+    .stat { background: #1a1c23; border: 1px solid #2b2e39; border-radius: 12px; padding: 16px; }
+    .stat strong { display: block; font-size: 28px; color: #ff8a00; }
+    table { width: 100%; border-collapse: collapse; background: #17191f; border-radius: 12px; overflow: hidden; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #282b34; text-align: left; }
+    th { color: #aeb1bf; font-weight: 600; }
+    td:first-child { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+    .good { color: #73d18b; }
+    .bad { color: #ff7373; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Firepick Source Monitor</h1>
+  <div id="generated" class="muted">Loading latest data…</div>
+  <section id="stats" class="stats"></section>
+  <table>
+    <thead><tr><th>站点</th><th>状态</th><th>列表</th><th>搜索</th><th>清晰度</th><th>评分</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</main>
+<script>
+  const text = (value) => document.createTextNode(value == null ? "" : String(value));
+  fetch("./data/latest.json", { cache: "no-store" })
+    .then((response) => response.json())
+    .then((data) => {
+      document.getElementById("generated").textContent =
+        `Updated ${data.generatedAt} · ${data.onlineCount}/${data.total} online`;
+      const stats = document.getElementById("stats");
+      const values = [
+        ["Total", data.total],
+        ["Online", data.onlineCount],
+        ["Offline", data.total - data.onlineCount],
+        ["With quality", data.results.filter((item) => item.quality?.height).length]
+      ];
+      for (const [label, value] of values) {
+        const card = document.createElement("div");
+        card.className = "stat";
+        const strong = document.createElement("strong");
+        strong.append(text(value));
+        card.append(strong, text(label));
+        stats.append(card);
+      }
+      const rows = document.getElementById("rows");
+      for (const item of data.results.sort((a, b) => b.score - a.score)) {
+        const row = document.createElement("tr");
+        const fields = [
+          item.name,
+          item.online ? "在线" : "失败",
+          `${item.listMs}ms`,
+          String(item.searchHits),
+          item.quality ? `${item.quality.width}×${item.quality.height}` : "未知",
+          String(item.score)
+        ];
+        fields.forEach((value, index) => {
+          const cell = document.createElement("td");
+          cell.append(text(value));
+          if (index === 1) cell.className = item.online ? "good" : "bad";
+          row.append(cell);
+        });
+        rows.append(row);
+      }
+    })
+    .catch((error) => {
+      document.getElementById("generated").textContent = `Load failed: ${error}`;
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "firepick-source-monitor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Scheduled CMS source health and playback quality probes for Firepick.",
+  "scripts": {
+    "probe": "node src/probe.mjs",
+    "check": "node --check src/probe.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
