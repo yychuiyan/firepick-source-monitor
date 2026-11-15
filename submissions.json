@@ -1,0 +1,159 @@
+{
+  "meta": {
+    "updatedAt": "2026-11-15",
+    "note": "待检测的新采集站提交队列。格式与 candidates.json 的 providers[] 一致。"
+  },
+  "providers": [
+    {
+      "key": "mgzy",
+      "name": "芒果资源",
+      "api": "https://caiji.mgzyapi.com/api.php/provide/vod/",
+      "adult": false,
+      "metadata": {
+        "sourceURL": "https://mgzy1.tv",
+        "description": "芒果影视资源，每日更新，播放地址使用国外 CDN。",
+        "tags": [
+          "影视",
+          "每日更新",
+          "国外CDN"
+        ]
+      }
+    },
+    {
+      "key": "jjzy",
+      "name": "吉吉资源",
+      "api": "https://caiji.jjzyapi.com/api.php/provide/vod/",
+      "adult": false,
+      "metadata": {
+        "sourceURL": "https://jjzy.tv",
+        "description": "吉吉影视资源，每日更新，播放地址使用香港 CDN。",
+        "tags": [
+          "影视",
+          "每日更新",
+          "香港CDN"
+        ]
+      }
+    },
+    {
+      "key": "mujizy",
+      "name": "母鸡资源",
+      "api": "https://mujiziyuan00.com/api.php/provide/vod/",
+      "adult": false,
+      "metadata": {
+        "sourceURL": "https://mujiziyuan01.com",
+        "description": "母鸡影视资源，每日更新，播放地址使用国外 CDN。",
+        "tags": [
+          "影视",
+          "每日更新",
+          "国外CDN"
+        ]
+      }
+    },
+    {
+      "key": "xgzy",
+      "name": "西瓜资源",
+      "api": "https://caiji.xgzyapi.com/api.php/provide/vod/",
+      "adult": false,
+      "metadata": {
+        "sourceURL": "https://xiguazy.tv",
+        "description": "西瓜影视资源，每日更新，播放地址使用 Cloudflare 线路。",
+        "tags": [
+          "影视",
+          "每日更新",
+          "Cloudflare"
+        ]
+      }
+    },
+    {
+      "key": "yuanlib_x",
+      "name": "免费X资源",
+      "api": "https://yuanlib.com/api.php/provide/vod/",
+      "adult": true,
+      "metadata": {
+        "sourceURL": "https://yuanlib.com",
+        "description": "成人资源线路，仅参加成人模式。",
+        "tags": [
+          "成人"
+        ]
+      }
+    },
+    {
+      "key": "jingpinx",
+      "name": "精品X资源",
+      "api": "https://www.jingpinx.com/api.php/provide/vod",
+      "adult": true,
+      "metadata": {
+        "sourceURL": "https://www.jingpinx.com",
+        "description": "成人资源线路，仅参加成人模式。",
+        "tags": [
+          "成人"
+        ]
+      }
+    },
+    {
+      "key": "laosebi",
+      "name": "老色X资源",
+      "api": "https://apilsbzy1.com/api.php/provide/vod/",
+      "adult": true,
+      "metadata": {
+        "sourceURL": "https://laosebizy.com",
+        "description": "成人资源线路，仅参加成人模式。",
+        "tags": [
+          "成人"
+        ]
+      }
+    },
+    {
+      "key": "madou",
+      "name": "麻豆资源",
+      "api": "https://91md.me/api.php/provide/vod/",
+      "adult": true,
+      "metadata": {
+        "sourceURL": "https://91md.me",
+        "description": "成人资源线路，仅参加成人模式。",
+        "tags": [
+          "成人"
+        ]
+      }
+    },
+    {
+      "key": "fhapi9",
+      "name": "番号资源",
+      "api": "http://fhapi9.com/api.php/provide/vod/",
+      "adult": true,
+      "metadata": {
+        "sourceURL": "http://fhzy1.com",
+        "description": "成人资源线路，仅参加成人模式。",
+        "tags": [
+          "成人"
+        ]
+      }
+    },
+    {
+      "key": "xingba",
+      "name": "杏吧资源",
+      "api": "https://json.xingba222.com/api.php/provide/vod",
+      "adult": true,
+      "metadata": {
+        "sourceURL": "https://sex8zy1.com",
+        "description": "成人资源线路，仅参加成人模式。",
+        "tags": [
+          "成人"
+        ]
+      }
+    },
+    {
+      "key": "douapi",
+      "name": "豆豆资源",
+      "api": "https://api.douapi.cc/api.php/provide/vod",
+      "adult": true,
+      "metadata": {
+        "sourceURL": "https://doudouzy.com",
+        "description": "成人资源线路，仅参加成人模式。",
+        "tags": [
+          "成人"
+        ]
+      }
+    }
+  ]
+}

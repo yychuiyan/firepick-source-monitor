@@ -1,5 +1,7 @@
 .DS_Store
 node_modules/
+.wrangler/
 public/data/*.json
 public/data/latest.js
+public/api/v1/
 !public/data/.gitkeep

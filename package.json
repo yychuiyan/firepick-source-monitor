@@ -3,10 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Scheduled CMS source health and playback quality probes for Firepick.",
+  "description": "拾萤采集线路可用性、画质与评分监控。",
   "scripts": {
     "probe": "node src/probe.mjs",
-    "check": "node --check src/probe.mjs"
+    "audit:dead": "node scripts/audit-offline.mjs",
+    "sync:firepick": "node scripts/sync-firepick-candidates.mjs",
+    "check": "node --check src/probe.mjs && node --check src/catalog.mjs && node --check src/discovery.mjs && node --check src/discovery-channels.mjs && node --check src/api-data.mjs && node --check worker/index.mjs && node --check scripts/audit-offline.mjs && node --check scripts/sync-firepick-candidates.mjs",
+    "test": "node --test src/*.test.mjs worker/*.test.mjs",
+    "api:dev": "npx wrangler dev",
+    "api:deploy": "npx wrangler deploy"
   },
   "engines": {
     "node": ">=20"

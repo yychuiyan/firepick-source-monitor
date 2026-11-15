@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="拾萤线路检测公开 JSON 数据查看器。">
+  <meta name="theme-color" content="#080b09">
+  <title>数据查看 · 拾萤线路检测</title>
+  <script>
+    try {
+      const saved = localStorage.getItem("firepick-monitor-theme");
+      const system = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      document.documentElement.dataset.theme = saved === "light" || saved === "dark" ? saved : system;
+    } catch {
+      document.documentElement.dataset.theme = "dark";
+    }
+  </script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080b09;
+      --surface: #111612;
+      --surface-raised: #172019;
+      --text: #edf5eb;
+      --muted: #91a095;
+      --faint: #68766b;
+      --line: rgba(199, 230, 204, .12);
+      --line-strong: rgba(199, 230, 204, .22);
+      --amber: #f3b84c;
+      --amber-soft: rgba(243, 184, 76, .13);
+      --green: #73d49a;
+      --cyan: #72d7cd;
+      --danger: #ff7872;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .32);
+      font-family: "Avenir Next", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+      font-synthesis: none;
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f1f4ed;
+      --surface: #fbfcf8;
+      --surface-raised: #f4f7f1;
+      --text: #172018;
+      --muted: #627064;
+      --faint: #839087;
+      --line: rgba(29, 52, 34, .11);
+      --line-strong: rgba(29, 52, 34, .2);
+      --amber: #c98208;
+      --amber-soft: rgba(201, 130, 8, .11);
+      --green: #238246;
+      --cyan: #137d76;
+      --danger: #c84742;
+      --shadow: 0 24px 70px rgba(35, 55, 39, .11);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 12% 0%, rgba(243, 184, 76, .075), transparent 32rem),
+        radial-gradient(circle at 92% 8%, rgba(115, 212, 154, .055), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+    }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { color: inherit; font: inherit; }
+    a { color: inherit; }
+    svg { display: block; }
+    .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--bg) 86%, transparent);
+      backdrop-filter: blur(18px);
+    }
+    .topbar-inner {
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      text-decoration: none;
+    }
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--line));
+      border-radius: 50%;
+      color: var(--amber);
+      background: var(--surface);
+      font-family: "Songti SC", "STSong", serif;
+      font-size: 17px;
+    }
+    .brand strong { display: block; font-size: 15px; }
+    .brand small {
+      display: block;
+      margin-top: 2px;
+      color: var(--faint);
+      font-family: ui-monospace, monospace;
+      font-size: 9px;
+      letter-spacing: .14em;
+    }
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .text-button, .icon-button {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .text-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 12px;
+      font-size: 11px;
+    }
+    .icon-button {
+      width: 38px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+    }
+    .icon-button svg, .text-button svg { width: 15px; height: 15px; }
+    .text-button:hover, .icon-button:hover { border-color: var(--line-strong); background: var(--surface-raised); }
+    button:focus-visible, a:focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 2px;
+    }
+    main { padding: 34px 0 56px; }
+    .viewer-head { margin-bottom: 18px; }
+    .breadcrumb {
+      color: var(--faint);
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
+      letter-spacing: .11em;
+    }
+    .head-row {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-top: 10px;
+    }
+    h1 {
+      margin: 0;
+      font-family: "Songti SC", "STSong", "Noto Serif SC", serif;
+      font-size: clamp(30px, 4vw, 46px);
+      line-height: 1.08;
+      letter-spacing: -.045em;
+    }
+    .head-copy p {
+      max-width: 680px;
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .file-meta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 7px;
+      flex: none;
+    }
+    .meta-chip {
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--muted);
+      font-family: ui-monospace, monospace;
+      font-size: 9px;
+      white-space: nowrap;
+    }
+    .meta-chip.json {
+      border-color: color-mix(in srgb, var(--amber) 45%, var(--line));
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+    .json-shell {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .json-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface-raised) 72%, transparent);
+    }
+    .endpoint {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--muted);
+      font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+      font-size: 10px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .endpoint b { color: var(--green); font-weight: 600; }
+    .toolbar-actions { display: flex; align-items: center; gap: 7px; flex: none; }
+    .toolbar-actions button, .toolbar-actions a {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 10px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .toolbar-actions .primary {
+      border-color: var(--amber);
+      background: var(--amber);
+      color: #181407;
+      font-weight: 600;
+    }
+    .toolbar-actions svg { width: 14px; height: 14px; }
+    .json-scroll { max-height: calc(100vh - 270px); min-height: 350px; overflow: auto; }
+    .json-content {
+      min-width: max-content;
+      margin: 0;
+      padding: 20px 22px 34px;
+      color: var(--text);
+      font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.72;
+      tab-size: 2;
+    }
+    .json-key { color: var(--cyan); }
+    .json-string { color: var(--green); }
+    .json-number { color: var(--amber); }
+    .json-boolean { color: #c692f0; }
+    :root[data-theme="light"] .json-boolean { color: #7f49ad; }
+    .loading, .error-state {
+      min-height: 350px;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+    .error-state strong { display: block; margin-bottom: 7px; color: var(--danger); }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 3px 0;
+      color: var(--faint);
+      font-size: 10px;
+    }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 50;
+      padding: 10px 14px;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      background: var(--surface-raised);
+      box-shadow: var(--shadow);
+      font-size: 11px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 8px);
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    @media (max-width: 720px) {
+      .shell { width: min(100% - 28px, 1180px); }
+      .topbar-inner { min-height: 60px; }
+      .brand small, .back-label { display: none; }
+      .text-button { width: 38px; padding: 0; justify-content: center; }
+      main { padding-top: 22px; }
+      .head-row { display: block; }
+      .file-meta { justify-content: flex-start; margin-top: 14px; }
+      h1 { font-size: clamp(28px, 9vw, 38px); }
+      .json-toolbar { align-items: flex-start; }
+      .toolbar-actions button span, .toolbar-actions a span { display: none; }
+      .toolbar-actions button, .toolbar-actions a { width: 34px; justify-content: center; padding: 0; }
+      .json-scroll { max-height: calc(100vh - 250px); }
+      .json-content { padding: 16px 16px 28px; font-size: 11px; }
+      .footer { display: block; }
+      .footer span { display: block; margin-top: 5px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: .001ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="./#lines" aria-label="返回拾萤线路检测">
+        <span class="brand-mark">萤</span>
+        <span><strong>拾萤线路检测</strong><small>FIREFLY SIGNAL</small></span>
+      </a>
+      <div class="top-actions">
+        <a class="text-button" href="./#lines">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+          <span class="back-label">返回站点</span>
+        </a>
+        <button id="theme" class="icon-button" type="button" role="switch" aria-label="切换主题">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="viewer-head">
+      <div class="breadcrumb">数据入口 / <span id="fileBreadcrumb">JSON</span></div>
+      <div class="head-row">
+        <div class="head-copy">
+          <h1 id="pageTitle">数据查看</h1>
+          <p id="pageDescription">正在读取公开数据文件。</p>
+        </div>
+        <div class="file-meta">
+          <span class="meta-chip json">JSON</span>
+          <span id="fileSize" class="meta-chip">读取中</span>
+          <span id="generatedAt" class="meta-chip">更新时间 —</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="json-shell" aria-label="JSON 数据内容">
+      <div class="json-toolbar">
+        <div id="endpoint" class="endpoint"><b>GET</b> ./data/latest.json</div>
+        <div class="toolbar-actions">
+          <button id="copyJSON" type="button" aria-label="复制 JSON">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+            <span>复制</span>
+          </button>
+          <a id="downloadJSON" class="primary" href="./data/latest.json" download aria-label="下载原始 JSON">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 21h14"/></svg>
+            <span>下载</span>
+          </a>
+        </div>
+      </div>
+      <div id="jsonScroll" class="json-scroll">
+        <div class="loading">正在读取数据…</div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>公开数据供拾萤客户端与线路检测工具使用</span>
+      <span>原始 JSON 接口保持不变</span>
+    </footer>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const FILES = {
+      "latest.json": {
+        name: "完整检测",
+        description: "全部监测线路的完整检测快照，包含在线状态、响应速度、目录信息和播放探测结果。"
+      },
+      "online.json": {
+        name: "在线线路",
+        description: "当前通过完整可用检测的线路集合。"
+      },
+      "offline.json": {
+        name: "离线线路",
+        description: "当前未通过完整可用检测的线路，以及对应的失败原因。"
+      },
+      "quality.json": {
+        name: "画质线路",
+        description: "已识别到 HLS 画质信息的完整可用线路。"
+      },
+      "best.json": {
+        name: "最佳线路",
+        description: "供拾萤客户端优先读取的最佳线路数据，包含排序结果与有效期限。"
+      },
+      "fastest.json": {
+        name: "响应最快",
+        description: "按列表接口响应速度排序的完整可用线路。"
+      },
+      "top-rated.json": {
+        name: "评分最高",
+        description: "按资源目录综合评分排序的完整可用线路。"
+      },
+      "stats.json": {
+        name: "监测统计",
+        description: "本轮监测的汇总统计，包含在线率、响应与清晰度覆盖情况。"
+      },
+      "cms-candidates.json": {
+        name: "候选池",
+        description: "当前收录并标记资源类型的采集站候选列表。"
+      }
+    };
+
+    const root = document.documentElement;
+    const themeButton = document.querySelector("#theme");
+    const jsonScroll = document.querySelector("#jsonScroll");
+    const toast = document.querySelector("#toast");
+    const params = new URLSearchParams(location.search);
+    const requested = params.get("file") || "latest.json";
+    const fileName = Object.hasOwn(FILES, requested) ? requested : "latest.json";
+    const meta = FILES[fileName];
+    const rawPath = `./data/${fileName}`;
+    let rawText = "";
+    let toastTimer = 0;
+
+    function preferredTheme() {
+      const saved = localStorage.getItem("firepick-monitor-theme");
+      if (saved === "light" || saved === "dark") return saved;
+      return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+
+    function applyTheme(theme, persist) {
+      root.dataset.theme = theme;
+      themeButton.setAttribute("aria-checked", String(theme === "light"));
+      themeButton.setAttribute("aria-label", theme === "light" ? "切换到深色主题" : "切换到浅色主题");
+      document.querySelector('meta[name="theme-color"]').content =
+        theme === "light" ? "#f1f4ed" : "#080b09";
+      if (persist) localStorage.setItem("firepick-monitor-theme", theme);
+    }
+
+    function escapeHTML(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function highlightJSON(value) {
+      return escapeHTML(JSON.stringify(value, null, 2))
+        .replace(
+          /("(?:\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*")(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?/g,
+          (match, stringValue, keySuffix, booleanValue) => {
+            if (stringValue) {
+              const className = keySuffix ? "json-key" : "json-string";
+              return `<span class="${className}">${stringValue}</span>${keySuffix || ""}`;
+            }
+            if (booleanValue) return `<span class="json-boolean">${match}</span>`;
+            return `<span class="json-number">${match}</span>`;
+          }
+        );
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    }
+
+    function formatDate(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "更新时间 —";
+      return `更新 ${new Intl.DateTimeFormat("zh-CN", {
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      }).format(date)}`;
+    }
+
+    function showToast(message) {
+      clearTimeout(toastTimer);
+      toast.textContent = message;
+      toast.classList.add("show");
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+
+    async function copyText(text) {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.append(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+
+    async function load() {
+      document.title = `${meta.name} · 数据查看 | 拾萤线路检测`;
+      document.querySelector("#fileBreadcrumb").textContent = fileName;
+      document.querySelector("#pageTitle").textContent = meta.name;
+      document.querySelector("#pageDescription").textContent = meta.description;
+      document.querySelector("#endpoint").innerHTML = `<b>GET</b> ${rawPath}`;
+      document.querySelector("#downloadJSON").href = rawPath;
+
+      try {
+        const response = await fetch(rawPath, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        rawText = await response.text();
+        const data = JSON.parse(rawText);
+        document.querySelector("#fileSize").textContent = formatBytes(new Blob([rawText]).size);
+        document.querySelector("#generatedAt").textContent = formatDate(data.generatedAt);
+        jsonScroll.innerHTML = `<pre class="json-content"><code>${highlightJSON(data)}</code></pre>`;
+      } catch (error) {
+        jsonScroll.innerHTML = `
+          <div class="error-state">
+            <div><strong>读取失败</strong>${escapeHTML(error.message || "数据文件暂时不可用")}</div>
+          </div>`;
+      }
+    }
+
+    applyTheme(preferredTheme(), false);
+    themeButton.addEventListener("click", () => {
+      applyTheme(root.dataset.theme === "light" ? "dark" : "light", true);
+    });
+    document.querySelector("#copyJSON").addEventListener("click", async () => {
+      if (!rawText) return;
+      try {
+        await copyText(rawText);
+        showToast("JSON 已复制");
+      } catch {
+        showToast("复制失败，请下载原始文件");
+      }
+    });
+    load();
+  </script>
+</body>
+</html>

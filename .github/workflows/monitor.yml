@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "17 */2 * * *"
+    - cron: "7,22,37,52 * * * *"
 
 permissions:
   contents: read
@@ -26,6 +26,15 @@ jobs:
       COS_SECRET_KEY: ${{ secrets.COS_SECRET_KEY }}
       COS_BUCKET: ${{ secrets.COS_BUCKET }}
       COS_REGION: ${{ secrets.COS_REGION }}
+      GITHUB_TOKEN: ${{ github.token }}
+      GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+      CODEBERG_TOKEN: ${{ secrets.CODEBERG_TOKEN }}
+      BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
+      BING_SEARCH_API_KEY: ${{ secrets.BING_SEARCH_API_KEY }}
+      SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+      GOOGLE_CUSTOM_SEARCH_API_KEY: ${{ secrets.GOOGLE_CUSTOM_SEARCH_API_KEY }}
+      GOOGLE_CUSTOM_SEARCH_ENGINE_ID: ${{ secrets.GOOGLE_CUSTOM_SEARCH_ENGINE_ID }}
+      TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -34,6 +43,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Validate monitor and API
+        run: |
+          npm run check
+          npm test
       - name: Probe CMS sources
         run: npm run probe
       - uses: actions/upload-pages-artifact@v3

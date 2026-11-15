@@ -3,9 +3,20 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  buildCatalog,
+  canonicalHost,
+  mergeCandidates,
+} from "./catalog.mjs";
+import { writeReadOnlyAPI } from "./api-data.mjs";
+import { discoverInternetSources } from "./discovery.mjs";
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publicData = path.join(root, "public", "data");
 const candidatesPath = path.join(root, "candidates.json");
+const exclusionsPath = path.join(root, "exclusions.json");
+const submissionsPath = path.join(root, "submissions.json");
+const discoverySourcesPath = path.join(root, "discovery-sources.json");
 const concurrency = numberEnv("PROBE_CONCURRENCY", 6);
 const timeoutMs = numberEnv("PROBE_TIMEOUT_MS", 8000);
 const playbackTimeoutMs = numberEnv("PLAYBACK_TIMEOUT_MS", 5000);
@@ -14,6 +25,18 @@ const keywords = String(process.env.PROBE_KEYWORDS || "庆余年,三体")
   .map((value) => value.trim())
   .filter(Boolean);
 const qualityProbeLimit = numberEnv("QUALITY_PROBE_LIMIT", 18);
+const discoveryEnabled = process.env.DISCOVERY !== "off";
+const discoveryLimit = numberEnv("DISCOVERY_LIMIT", 240);
+const bestCandidateLimit = numberEnv("BEST_CANDIDATE_LIMIT", 16);
+const adultPattern =
+  /色|黄|AV|av|成人|伦理|福利|里番|麻豆|杏吧|美少女|湿乐园|番号|X资源|X站|黑料|约炮|裸|做爱|激情/;
+const adultCategoryPattern =
+  /成人|里番|无码|自拍|偷拍|主播|三级|乱伦|群交|性爱|美乳|强奸|探花|换脸|重口|丝袜|人妻|熟女|激情|福利姬/;
+const catalogURLs = [
+  process.env.CATALOG_URL,
+  "https://firepick-1302621537.cos.ap-shanghai.myqcloud.com/firepick-monitor/data/catalog.json",
+  "https://sources.yychuiyan.com/data/catalog.json",
+].filter(Boolean);
 
 function numberEnv(name, fallback) {
   const value = Number(process.env[name]);
@@ -21,19 +44,82 @@ function numberEnv(name, fallback) {
 }
 
 async function loadCandidates() {
-  const parsed = JSON.parse(await fs.readFile(candidatesPath, "utf8"));
-  const providers = Array.isArray(parsed) ? parsed : parsed.providers;
-  if (!Array.isArray(providers)) {
+  const parsedSeeds = await readJSON(candidatesPath);
+  const seeds = Array.isArray(parsedSeeds) ? parsedSeeds : parsedSeeds.providers;
+  if (!Array.isArray(seeds)) {
     throw new Error("candidates.json must be an array or contain providers[]");
   }
-  const seen = new Set();
-  return providers.filter((provider) => {
-    if (!provider?.key || !provider?.name || !provider?.api) return false;
-    const host = URL.canParse(provider.api) ? new URL(provider.api).host : provider.key;
-    if (seen.has(host)) return false;
-    seen.add(host);
-    return true;
-  });
+  const submissionsFile = await readJSON(submissionsPath);
+  const submissions = Array.isArray(submissionsFile)
+    ? submissionsFile
+    : submissionsFile.providers || [];
+  const exclusions = await loadExclusions();
+  const previousCatalog = await loadPreviousCatalog();
+  const discoveryConfig = await readJSON(discoverySourcesPath);
+  const discovered = discoveryEnabled
+    ? await discoverInternetSources(discoveryConfig, {
+        githubToken: process.env.GITHUB_TOKEN,
+      })
+    : [];
+  const merged = mergeCandidates({
+    seeds,
+    catalog: previousCatalog,
+    discovered: [
+      ...submissions.map((provider) => ({
+        ...provider,
+        discoverySource: "submission",
+      })),
+      ...discovered,
+    ],
+    excluded: [...exclusions],
+  }).slice(0, discoveryLimit);
+  console.log(
+    `Catalog ${previousCatalog.length}, submissions ${submissions.length}, ` +
+      `internet discoveries ${discovered.length}, excluded ${exclusions.size}`
+  );
+  console.log(`Probing ${merged.length} candidates`);
+  return { providers: merged, previousCatalog };
+}
+
+async function loadPreviousCatalog() {
+  for (const url of catalogURLs) {
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!response.ok) continue;
+      const data = await response.json();
+      const providers = Array.isArray(data) ? data : data.providers;
+      if (Array.isArray(providers) && providers.length) return providers;
+    } catch {
+      // Try the next own snapshot endpoint.
+    }
+  }
+  try {
+    const local = await readJSON(path.join(publicData, "catalog.json"));
+    if (Array.isArray(local.providers)) return local.providers;
+  } catch {
+    // First run has no local catalog snapshot.
+  }
+  return [];
+}
+
+async function loadExclusions() {
+  const parsed = await readJSON(exclusionsPath);
+  const entries = Array.isArray(parsed) ? parsed : parsed.excluded;
+  if (!Array.isArray(entries)) {
+    throw new Error("exclusions.json must be an array or contain excluded[]");
+  }
+  return new Set(
+    entries
+      .map((entry) => canonicalHost(entry?.host || entry?.api))
+      .filter(Boolean)
+  );
+}
+
+async function readJSON(file) {
+  return JSON.parse(await fs.readFile(file, "utf8"));
 }
 
 function endpoint(api, params) {
@@ -48,22 +134,37 @@ function endpoint(api, params) {
 
 async function requestJSON(api, params, timeout = timeoutMs) {
   const started = Date.now();
-  const response = await fetch(endpoint(api, params), {
-    headers: {
-      "User-Agent": "okhttp/4.1.0",
-      Accept: "application/json,text/plain,*/*"
-    },
-    signal: AbortSignal.timeout(timeout)
-  });
-  const text = await response.text();
-  let data = null;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error(`non-json HTTP ${response.status}`);
+  const attempts = [
+    ["okhttp/4.1.0", "application/json,text/plain,*/*"],
+    [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130 Safari/537.36",
+      "application/json,text/plain,text/html,*/*",
+    ],
+  ];
+  let lastError = null;
+  for (const [userAgent, accept] of attempts) {
+    try {
+      const response = await fetch(endpoint(api, params), {
+        headers: { "User-Agent": userAgent, Accept: accept },
+        signal: AbortSignal.timeout(timeout),
+      });
+      const text = await response.text();
+      let data = null;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(`non-json HTTP ${response.status}`);
+      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return { data, ms: Date.now() - started, status: response.status };
+    } catch (error) {
+      lastError = error;
+      if (!/HTTP (?:401|403)|non-json HTTP (?:401|403)/.test(String(error.message))) {
+        break;
+      }
+    }
   }
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return { data, ms: Date.now() - started };
+  throw lastError;
 }
 
 function firstPlayableURL(detail) {
@@ -144,16 +245,42 @@ function score(result) {
   ) * 8;
   if (result.quality?.bandwidth >= 2_000_000) value += 4;
   if (result.listMs > 0) value += Math.max(0, 8 - Math.min(8, result.listMs / 500));
+  if (result.rating > 0) value += Math.min(4, result.rating * 0.8);
   return Math.round(value * 10) / 10;
 }
 
 async function probe(provider, index) {
+  const metadata = provider.metadata || {};
   const result = {
     key: provider.key,
     name: provider.name,
     api: provider.api,
+    adult:
+      Boolean(provider.adult)
+      || Boolean(metadata.adult)
+      || adultPattern.test(
+        [provider.name, metadata.description, ...(metadata.tags || [])].join(" ")
+      ),
+    discovered: Boolean(provider.discovered),
+    discoverySource: provider.discoverySource || "seed",
+    sourceURL: metadata.sourceURL || "",
+    apiType: metadata.apiType || null,
+    description: metadata.description || "",
+    tags: metadata.tags || [],
+    rating: metadata.rating || 0,
+    directoryStatus: metadata.directoryStatus || null,
+    uptime: metadata.uptime,
+    directoryResponseTime: metadata.responseTime,
+    updateFrequency: metadata.updateFrequency || null,
+    resourceCount: metadata.resourceCount,
+    lastUpdateTime: metadata.lastUpdateTime || null,
+    lastResourceUpdate: metadata.lastResourceUpdate || null,
+    establishedAt: metadata.establishedAt || null,
+    todayUpdates: metadata.todayUpdates || 0,
+    directorySpeed: metadata.speed || null,
     listOK: false,
     listMs: 0,
+    httpStatus: null,
     searchHits: 0,
     searchMs: 0,
     detailOK: false,
@@ -166,7 +293,32 @@ async function probe(provider, index) {
     const list = await requestJSON(provider.api, { ac: "videolist", pg: 1 });
     result.listOK = Array.isArray(list.data?.list) && list.data.list.length > 0;
     result.listMs = list.ms;
+    result.httpStatus = list.status;
+    const total = Number(list.data?.total);
+    const pages = Number(list.data?.pagecount);
+    const limit = Number(list.data?.limit);
+    result.resourceCount =
+      (Number.isFinite(total) && total > 0 && total) ||
+      (Number.isFinite(pages) &&
+        pages > 0 &&
+        Number.isFinite(limit) &&
+        limit > 0 &&
+        Math.round(pages * limit)) ||
+      list.data?.list?.length ||
+      result.resourceCount;
     if (!result.listOK) throw new Error("empty list");
+
+    if (!result.adult) {
+      try {
+        const catalog = await requestJSON(provider.api, { ac: "list" }, timeoutMs);
+        const adultCategoryHits = (Array.isArray(catalog.data?.class) ? catalog.data.class : [])
+          .map((item) => String(item?.type_name || ""))
+          .filter((name) => adultCategoryPattern.test(name));
+        result.adult = adultCategoryHits.length >= 3;
+      } catch {
+        // Catalog classification is best-effort; explicit directory markers remain authoritative.
+      }
+    }
 
     let matched = null;
     for (const keyword of keywords) {
@@ -233,10 +385,35 @@ async function writeJSON(name, value) {
   );
 }
 
-const candidates = await loadCandidates();
-console.log(`Probing ${candidates.length} candidates...`);
+const { providers: candidates, previousCatalog } = await loadCandidates();
 const results = await mapLimit(candidates, concurrency, probe);
+const previousByHost = new Map(
+  previousCatalog.map((item) => [canonicalHost(item.api), item])
+);
+for (const result of results) {
+  const previous = previousByHost.get(canonicalHost(result.api));
+  const history = previous?.history || {};
+  const previousOnline = Number(history.onlineCount || 0);
+  const previousOffline = Number(history.offlineCount || 0);
+  const onlineChecks = previousOnline + (result.online ? 1 : 0);
+  const offlineChecks = previousOffline + (result.online ? 0 : 1);
+  const samples = onlineChecks + offlineChecks;
+  result.uptime = samples ? Math.round((onlineChecks / samples) * 1000) / 10 : null;
+  result.uptimeSamples = samples;
+  result.onlineChecks = onlineChecks;
+  result.offlineChecks = offlineChecks;
+  result.resourceCount = result.resourceCount || previous?.resourceCount || null;
+}
 const online = results.filter((item) => item.online);
+const offline = results.filter((item) => !item.online);
+const discoverySourceStats = {};
+for (const item of results) {
+  if (!item.discovered) continue;
+  const source = item.discoverySource || "unknown";
+  const stats = (discoverySourceStats[source] ||= { total: 0, online: 0 });
+  stats.total += 1;
+  if (item.online) stats.online += 1;
+}
 const ranked = [...results].sort((a, b) => b.score - a.score);
 const quality = ranked
   .filter((item) => item.online && item.quality?.height > 0)
@@ -249,6 +426,41 @@ const quality = ranked
       b.score - a.score
   );
 const generatedAt = new Date().toISOString();
+const fastest = online
+  .filter((item) => item.listMs > 0)
+  .sort((a, b) => a.listMs - b.listMs)
+  .slice(0, 20);
+const topRated = results
+  .filter((item) => item.rating > 0)
+  .sort((a, b) => b.rating - a.rating || b.score - a.score)
+  .slice(0, 20);
+const bestHosts = new Set();
+const bestEligible = ranked.filter((item) => {
+  if (!item.online) return false;
+  const host = canonicalHost(item.api);
+  if (bestHosts.has(host)) return false;
+  bestHosts.add(host);
+  return true;
+});
+const generalBestTarget = Math.min(12, bestCandidateLimit);
+const best = [
+  ...bestEligible.filter((item) => !item.adult).slice(0, generalBestTarget),
+  ...bestEligible
+    .filter((item) => item.adult)
+    .slice(0, Math.max(0, bestCandidateLimit - generalBestTarget)),
+];
+const selectedBestKeys = new Set(best.map((item) => item.key));
+for (const item of bestEligible) {
+  if (best.length >= bestCandidateLimit) break;
+  if (selectedBestKeys.has(item.key)) continue;
+  best.push(item);
+  selectedBestKeys.add(item.key);
+}
+const listTimes = results.filter((item) => item.listMs > 0).map((item) => item.listMs);
+const average = (values) =>
+  values.length
+    ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
+    : 0;
 
 await fs.mkdir(publicData, { recursive: true });
 const latest = {
@@ -256,6 +468,8 @@ const latest = {
   keywords,
   total: results.length,
   onlineCount: online.length,
+  offlineCount: offline.length,
+  discoveredCount: results.filter((item) => item.discovered).length,
   results
 };
 await writeJSON("latest.json", latest);
@@ -268,6 +482,11 @@ await writeJSON("online.json", {
   count: online.length,
   providers: online.map(({ error, ...provider }) => provider)
 });
+await writeJSON("offline.json", {
+  generatedAt,
+  count: offline.length,
+  providers: offline
+});
 await writeJSON("quality.json", {
   generatedAt,
   count: quality.length,
@@ -277,20 +496,81 @@ await writeJSON("cms-candidates.json", {
   generatedAt,
   providers: online
     .sort((a, b) => b.score - a.score)
-    .map(({ key, name, api }) => ({ key, name, api }))
+    .map(({ key, name, api, adult }) => ({ key, name, api, adult }))
 });
-await writeJSON("stats.json", {
+await writeJSON("fastest.json", {
+  generatedAt,
+  count: fastest.length,
+  providers: fastest
+});
+await writeJSON("top-rated.json", {
+  generatedAt,
+  count: topRated.length,
+  providers: topRated
+});
+const bestPayload = {
+  schemaVersion: 1,
+  generatedAt,
+  expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+  count: best.length,
+  providers: best.map(
+    ({ key, name, api, adult, score, listMs, uptime, rating, quality, todayUpdates }) => ({
+      key,
+      name,
+      api,
+      adult,
+      score,
+      listMs,
+      uptime,
+      rating,
+      quality,
+      todayUpdates
+    })
+  )
+};
+await writeJSON("best.json", bestPayload);
+const statsPayload = {
   generatedAt,
   total: results.length,
   online: online.length,
-  offline: results.length - online.length,
+  offline: offline.length,
+  onlineRate:
+    results.length > 0
+      ? Math.round((online.length / results.length) * 1000) / 10
+      : 0,
+  discovered: results.filter((item) => item.discovered).length,
+  averageListMs: average(listTimes),
+  fastestListMs: listTimes.length ? Math.min(...listTimes) : 0,
+  slowestListMs: listTimes.length ? Math.max(...listTimes) : 0,
   withResolution: quality.length,
   with1080p: quality.filter(
     (item) => Math.min(item.quality.width, item.quality.height) >= 1000
-  ).length
+  ).length,
+  withRating: results.filter((item) => item.rating > 0).length,
+  discoverySources: discoverySourceStats,
+};
+await writeJSON("stats.json", statsPayload);
+
+const catalog = buildCatalog(results, previousCatalog, generatedAt);
+await writeJSON("catalog.json", {
+  schemaVersion: 1,
+  generatedAt,
+  count: catalog.length,
+  online: catalog.filter((item) => item.status === "online").length,
+  providers: catalog,
+});
+await writeReadOnlyAPI({
+  root,
+  generatedAt,
+  catalog,
+  best: bestPayload,
+  stats: statsPayload,
 });
 
 console.log(`Online ${online.length}/${results.length}; quality ${quality.length}`);
+console.log(
+  `Discovery ${JSON.stringify(discoverySourceStats)}`
+);
 for (const item of quality.slice(0, 12)) {
   console.log(
     `  ★ ${item.key} ${item.quality.width}x${item.quality.height} ` +

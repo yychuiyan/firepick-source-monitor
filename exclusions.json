@@ -1,0 +1,378 @@
+{
+  "meta": {
+    "updatedAt": "2026-11-15",
+    "note": "仅收录目录已标记下线且实测失败，或响应格式确定不兼容的线路。搜索无结果、单次超时和普通连接失败不在此处永久排除。"
+  },
+  "excluded": [
+    {
+      "name": "飘零影院资源站",
+      "host": "p2100.net",
+      "reason": "目录标记下线；Cloudflare 验证页返回 403，非 AppleCMS JSON"
+    },
+    {
+      "name": "大地资源站",
+      "host": "dadiapi.com",
+      "reason": "目录标记下线；接口仅返回 XML RSS，当前 JSON 客户端不兼容"
+    },
+    {
+      "name": "湿乐园资源站",
+      "host": "xxavs.com",
+      "reason": "目录标记下线；接口仅返回 closed"
+    },
+    {
+      "name": "如意资源站",
+      "host": "api.ryzy.com",
+      "reason": "目录标记下线；请求跳转到停放页，非 AppleCMS JSON"
+    },
+    {
+      "name": "ck资源站",
+      "host": "api.ckzy.com",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "ok资源站",
+      "host": "api.okzy.com",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "u酷资源站",
+      "host": "api.ukuzy.com",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "优质资源站",
+      "host": "api.yzzy.com",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "快车资源站",
+      "host": "api.kczy.com",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "新浪资源站",
+      "host": "api.xlzy.com",
+      "reason": "目录标记下线；实测请求超时"
+    },
+    {
+      "name": "淘片资源站",
+      "host": "api.tpzy.com",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "电影天堂资源站",
+      "host": "api.dyttzy.com",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "红牛资源站",
+      "host": "api.hnzy2.com",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "细胞网资源站",
+      "host": "www.xxibaozyw.com",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "色猫资源站",
+      "host": "caiji.semaozy.net",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "豆瓣资源站",
+      "host": "dbzy.tv",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "量子资源站",
+      "host": "api.lzizy.com",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "金鹰资源站",
+      "host": "api.jyzy.com",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "闪电资源",
+      "host": "api.sdzy.com",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "雅集资源站",
+      "host": "api.yjzy.com",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "香蕉资源站",
+      "host": "www.xiangjiaozyw.com",
+      "reason": "目录标记下线；实测连接被重置"
+    },
+    {
+      "name": "m51.gotto.top",
+      "host": "m51.gotto.top",
+      "reason": "连续 6 次检测失败：empty list"
+    },
+    {
+      "name": "ikunzyapi.com",
+      "host": "ikunzyapi.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "wolongzyw.com",
+      "host": "wolongzyw.com",
+      "reason": "连续 7 次检测失败：non-json HTTP 200"
+    },
+    {
+      "name": "wwzy.tv",
+      "host": "wwzy.tv",
+      "reason": "连续 7 次检测失败：non-json HTTP 200"
+    },
+    {
+      "name": "collect.wolongzyw.com",
+      "host": "collect.wolongzyw.com",
+      "reason": "连续 7 次检测失败：non-json HTTP 200"
+    },
+    {
+      "name": "mozhuazy.com",
+      "host": "mozhuazy.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "api.wwzy.tv",
+      "host": "api.wwzy.tv",
+      "reason": "连续 7 次检测失败：non-json HTTP 200"
+    },
+    {
+      "name": "caiji.dbzy.tv",
+      "host": "caiji.dbzy.tv",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "caiji.dbzy5.com",
+      "host": "caiji.dbzy5.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "zy.jinchancaiji.com",
+      "host": "zy.jinchancaiji.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "www.qiqidys.com",
+      "host": "www.qiqidys.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "huawei8.live",
+      "host": "huawei8.live",
+      "reason": "连续 7 次检测失败：non-json HTTP 200"
+    },
+    {
+      "name": "collect.wolongzy.cc",
+      "host": "collect.wolongzy.cc",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "zy.xmm.hk",
+      "host": "zy.xmm.hk",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "gayapi.com",
+      "host": "gayapi.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "api.fczy888.me",
+      "host": "api.fczy888.me",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "json.heimuer.xyz",
+      "host": "json.heimuer.xyz",
+      "reason": "连续 7 次检测失败：non-json HTTP 200"
+    },
+    {
+      "name": "json02.heimuer.xyz",
+      "host": "json02.heimuer.xyz",
+      "reason": "连续 7 次检测失败：non-json HTTP 200"
+    },
+    {
+      "name": "a.uezy.pw",
+      "host": "a.uezy.pw",
+      "reason": "连续 7 次检测失败：non-json HTTP 200"
+    },
+    {
+      "name": "fqzy4.me",
+      "host": "fqzy4.me",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "to.to-long.com",
+      "host": "to.to-long.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "vs.okcdn100.top",
+      "host": "vs.okcdn100.top",
+      "reason": "连续 7 次检测失败：non-json HTTP 404"
+    },
+    {
+      "name": "www.fantuan.tv",
+      "host": "www.fantuan.tv",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "www.heimuer.tv",
+      "host": "www.heimuer.tv",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "www.yyzywcj.com",
+      "host": "www.yyzywcj.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "zy.sh0o.cn",
+      "host": "zy.sh0o.cn",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "www.39kan.com",
+      "host": "www.39kan.com",
+      "reason": "连续 7 次检测失败：HTTP 523"
+    },
+    {
+      "name": "49zyw.com",
+      "host": "49zyw.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "caiji.qhzyapi.com",
+      "host": "caiji.qhzyapi.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "www.kuaiyunzy.com",
+      "host": "www.kuaiyunzy.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "caiji.kczyapi.com",
+      "host": "caiji.kczyapi.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "47.113.126.237:1234",
+      "host": "47.113.126.237:1234",
+      "reason": "连续 7 次检测失败：non-json HTTP 404"
+    },
+    {
+      "name": "haiwaikan.com",
+      "host": "haiwaikan.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "xzcjz.com",
+      "host": "xzcjz.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "zzdj.cc",
+      "host": "zzdj.cc",
+      "reason": "连续 7 次检测失败：non-json HTTP 200"
+    },
+    {
+      "name": "www.ahjiuman.com",
+      "host": "www.ahjiuman.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "www.feisuzyapi.com",
+      "host": "www.feisuzyapi.com",
+      "reason": "连续 7 次检测失败：fetch failed"
+    },
+    {
+      "name": "xh1.xn--yetu07f.icu",
+      "host": "xh1.xn--yetu07f.icu",
+      "reason": "连续 6 次检测失败：non-json HTTP 502"
+    },
+    {
+      "name": "xiutan.shiyifacai.com",
+      "host": "xiutan.shiyifacai.com",
+      "reason": "连续 6 次检测失败：non-json HTTP 502"
+    },
+    {
+      "name": "m.szyyds.cn",
+      "host": "m.szyyds.cn",
+      "reason": "连续 6 次检测失败：non-json HTTP 200"
+    },
+    {
+      "name": "api.tyun77.cn",
+      "host": "api.tyun77.cn",
+      "reason": "连续 6 次检测失败：fetch failed"
+    },
+    {
+      "name": "s.weixine.net",
+      "host": "s.weixine.net",
+      "reason": "连续 6 次检测失败：fetch failed"
+    },
+    {
+      "name": "yingszj.xn--654a.cc",
+      "host": "yingszj.xn--654a.cc",
+      "reason": "连续 6 次检测失败：non-json HTTP 502"
+    },
+    {
+      "name": "www.kuin.one",
+      "host": "www.kuin.one",
+      "reason": "连续 6 次检测失败：fetch failed"
+    },
+    {
+      "name": "yayayaaapp.ynf.icu",
+      "host": "yayayaaapp.ynf.icu",
+      "reason": "连续 6 次检测失败：fetch failed"
+    },
+    {
+      "name": "122.228.84.103:5822",
+      "host": "122.228.84.103:5822",
+      "reason": "连续 6 次检测失败：fetch failed"
+    },
+    {
+      "name": "111.230.51.151:2323",
+      "host": "111.230.51.151:2323",
+      "reason": "连续 6 次检测失败：fetch failed"
+    },
+    {
+      "name": "122.228.84.103:6117",
+      "host": "122.228.84.103:6117",
+      "reason": "连续 6 次检测失败：fetch failed"
+    },
+    {
+      "name": "c.xn--yetu07f.icu",
+      "host": "c.xn--yetu07f.icu",
+      "reason": "连续 6 次检测失败：non-json HTTP 502"
+    },
+    {
+      "name": "49zy1.com",
+      "host": "49zy1.com",
+      "reason": "连续 6 次检测失败：fetch failed"
+    },
+    {
+      "name": "kekezy1.com",
+      "host": "kekezy1.com",
+      "reason": "连续 6 次检测失败：fetch failed"
+    },
+    {
+      "name": "api.kuaifan.tv",
+      "host": "api.kuaifan.tv",
+      "reason": "连续 5 次检测失败：fetch failed"
+    },
+    {
+      "name": "tvbox--api-backup.pages.dev",
+      "host": "tvbox--api-backup.pages.dev",
+      "reason": "连续 3 次检测失败：non-json HTTP 200"
+    }
+  ]
+}

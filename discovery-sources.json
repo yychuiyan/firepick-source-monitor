@@ -1,0 +1,97 @@
+{
+  "meta": {
+    "updatedAt": "2026-11-15",
+    "note": "拾萤独立发现源。支持公开代码仓库、订阅配置、sitemap、搜索 API、Common Crawl 和证书透明度；不依赖外部资源目录 API。"
+  },
+  "maxCandidates": 160,
+  "feedUrls": [],
+  "directoryUrls": [],
+  "github": {
+    "enabled": true,
+    "repositories": [
+      "deli6250/tvbox-config",
+      "fenghao0/tvbox-config",
+      "hujun20261/tvbox-config"
+    ],
+    "searchQueries": [
+      "tvbox config",
+      "tvbox json"
+    ],
+    "codeQueries": [
+      "\"api.php/provide/vod\"",
+      "\"ac=videolist\" \"provide/vod\""
+    ],
+    "maxRepositories": 6,
+    "maxFilesPerRepository": 4,
+    "maxCodeFiles": 8,
+    "maxCandidates": 100
+  },
+  "gitlab": {
+    "enabled": true,
+    "searchQueries": [
+      "tvbox",
+      "catvod"
+    ],
+    "maxRepositories": 4,
+    "maxFilesPerRepository": 3
+  },
+  "gitee": {
+    "enabled": true,
+    "searchQueries": [
+      "tvbox",
+      "影视接口"
+    ],
+    "maxRepositories": 4,
+    "maxFilesPerRepository": 3
+  },
+  "codeberg": {
+    "enabled": true,
+    "searchQueries": [
+      "tvbox",
+      "catvod"
+    ],
+    "maxRepositories": 3,
+    "maxFilesPerRepository": 2
+  },
+  "searchApi": {
+    "enabled": true,
+    "fetchResultPages": true,
+    "maxResultsPerQuery": 6,
+    "maxResults": 40,
+    "queries": [
+      "\"api.php/provide/vod\"",
+      "\"ac=videolist\" \"provide/vod\"",
+      "\"inc/apijson.php\" 采集",
+      "TVBox 接口 json"
+    ]
+  },
+  "sitemaps": {
+    "enabled": true,
+    "urls": [],
+    "maxSitemaps": 8,
+    "maxPages": 20
+  },
+  "commonCrawl": {
+    "enabled": false,
+    "maxPatterns": 4,
+    "maxResultsPerPattern": 20,
+    "patterns": [
+      "*.tv/api.php/provide/vod*",
+      "*.cc/api.php/provide/vod*",
+      "*.top/api.php/provide/vod*"
+    ]
+  },
+  "certificateTransparency": {
+    "enabled": true,
+    "queries": [
+      "tvbox",
+      "tvbox-api"
+    ],
+    "maxDomains": 20,
+    "maxPathsPerDomain": 2,
+    "paths": [
+      "/api.php/provide/vod",
+      "/api.php/provide/vod/"
+    ]
+  }
+}
