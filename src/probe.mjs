@@ -251,13 +251,18 @@ const quality = ranked
 const generatedAt = new Date().toISOString();
 
 await fs.mkdir(publicData, { recursive: true });
-await writeJSON("latest.json", {
+const latest = {
   generatedAt,
   keywords,
   total: results.length,
   onlineCount: online.length,
   results
-});
+};
+await writeJSON("latest.json", latest);
+await fs.writeFile(
+  path.join(publicData, "latest.js"),
+  `window.__FIREPICK_LATEST__ = ${JSON.stringify(latest)};\n`
+);
 await writeJSON("online.json", {
   generatedAt,
   count: online.length,

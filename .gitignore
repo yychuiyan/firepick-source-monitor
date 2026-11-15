@@ -1,4 +1,5 @@
 .DS_Store
 node_modules/
 public/data/*.json
+public/data/latest.js
 !public/data/.gitkeep

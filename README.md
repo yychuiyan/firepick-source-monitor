@@ -39,7 +39,28 @@ The workflow runs every two hours and deploys `public/` as a static site.
 
 ## Cloudflare Pages
 
-Cloudflare can deploy the same generated directory:
+Recommended production domain:
+
+```text
+sources.yychuiyan.com
+```
+
+Recommended Cloudflare Pages project:
+
+```text
+firepick-source-monitor
+```
+
+Create the Pages project once, then add `sources.yychuiyan.com` as its custom
+domain. Add these GitHub Secrets:
+
+```text
+CLOUDFLARE_API_TOKEN
+CLOUDFLARE_ACCOUNT_ID
+```
+
+The workflow deploys Cloudflare Pages automatically when both secrets exist.
+It can also be deployed manually:
 
 ```bash
 npx wrangler pages deploy public --project-name firepick-source-monitor

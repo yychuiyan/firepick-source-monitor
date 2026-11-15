@@ -31,11 +31,10 @@
     <tbody id="rows"></tbody>
   </table>
 </main>
+<script src="./data/latest.js"></script>
 <script>
   const text = (value) => document.createTextNode(value == null ? "" : String(value));
-  fetch("./data/latest.json", { cache: "no-store" })
-    .then((response) => response.json())
-    .then((data) => {
+  function render(data) {
       document.getElementById("generated").textContent =
         `Updated ${data.generatedAt} · ${data.onlineCount}/${data.total} online`;
       const stats = document.getElementById("stats");
@@ -72,10 +71,17 @@
         });
         rows.append(row);
       }
-    })
-    .catch((error) => {
-      document.getElementById("generated").textContent = `Load failed: ${error}`;
-    });
+  }
+  if (window.__FIREPICK_LATEST__) {
+    render(window.__FIREPICK_LATEST__);
+  } else {
+    fetch("./data/latest.json", { cache: "no-store" })
+      .then((response) => response.json())
+      .then(render)
+      .catch((error) => {
+        document.getElementById("generated").textContent = `Load failed: ${error}`;
+      });
+  }
 </script>
 </body>
 </html>
