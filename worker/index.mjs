@@ -9,7 +9,7 @@ const jsonHeaders = {
 export default {
   async fetch(request, env) {
     return handleAPIRequest(request, {
-      loadJSON: (pathname) => loadAssetJSON(request, env, pathname),
+      loadJSON: (pathname) => loadJSONData(request, env, pathname),
     });
   },
 
@@ -265,6 +265,40 @@ async function loadCatalog(loadJSON) {
     ...catalog,
     sources: Array.isArray(catalog.sources) ? catalog.sources : [],
   };
+}
+
+export async function loadJSONData(
+  request,
+  env,
+  pathname,
+  fetchImpl = fetch
+) {
+  const dataOrigin = String(env?.API_DATA_ORIGIN || "").replace(/\/+$/, "");
+  if (dataOrigin) {
+    try {
+      const remoteURL = new URL(
+        `${dataOrigin}/${pathname.replace(/^\/+/, "")}`
+      );
+      const response = await fetchImpl(remoteURL, {
+        headers: { Accept: "application/json" },
+        cf: {
+          cacheEverything: true,
+          cacheTtl: 60,
+        },
+      });
+      if (response.ok) return await response.json();
+      console.warn(
+        `remote asset ${pathname} returned ${response.status}; using bundled fallback`
+      );
+    } catch (error) {
+      console.warn(
+        `remote asset ${pathname} unavailable; using bundled fallback: ${String(
+          error?.message || error
+        )}`
+      );
+    }
+  }
+  return loadAssetJSON(request, env, pathname);
 }
 
 async function loadAssetJSON(request, env, pathname) {

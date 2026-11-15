@@ -151,6 +151,10 @@ Worker 使用 `public/` 作为静态资源，并由 `run_worker_first` 接管
 路由；配置 Cloudflare 凭据后可以执行 `npm run api:deploy`。部署前的
 `.json` 静态路由仍可由 GitHub Pages 或 COS 直接读取。
 
+监控任务会把 `public/api/v1/*.json` 同步到 COS，Worker 优先读取这份最新
+快照，并在 COS 暂时不可用时回退到部署内置的 API 数据。这样无需每 15 分钟
+重新部署 Worker，同时能保持自定义域名 API 与监控结果同步。
+
 Worker 同时配置了每 15 分钟一次的 Cron Trigger，作为 GitHub Actions
 定时调度的独立兜底。部署前需要配置一个仅允许该仓库 `Actions: write`
 的 GitHub Token：
@@ -227,10 +231,11 @@ COS_BUCKET
 COS_REGION
 ```
 
-工作流只会上传 `public/data/*.json`，目标路径为：
+工作流会上传 `public/data/*.json` 和 `public/api/v1/*.json`，目标路径为：
 
 ```text
 firepick-monitor/data/
+firepick-monitor/api/v1/
 ```
 
 当前公开镜像地址：

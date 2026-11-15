@@ -12,5 +12,8 @@ binding = "ASSETS"
 not_found_handling = "single-page-application"
 run_worker_first = ["/api/v1/*"]
 
+[vars]
+API_DATA_ORIGIN = "https://firepick-1302621537.cos.ap-shanghai.myqcloud.com/firepick-monitor"
+
 [triggers]
 crons = ["*/15 * * * *"]

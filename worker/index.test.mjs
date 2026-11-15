@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   dispatchMonitorWorkflow,
   handleAPIRequest,
+  loadJSONData,
   querySources,
 } from "./index.mjs";
 
@@ -127,4 +128,43 @@ test("does not dispatch without a Worker token", async () => {
   );
   assert.equal(ok, false);
   assert.equal(called, false);
+});
+
+test("loads the latest API snapshot from COS before the bundled asset", async () => {
+  let requested;
+  const payload = { generatedAt: "fresh", total: 3 };
+  const result = await loadJSONData(
+    new Request("https://sources.yychuiyan.com/api/v1/stats"),
+    { API_DATA_ORIGIN: "https://cos.example/firepick-monitor/" },
+    "/api/v1/stats.json",
+    async (url) => {
+      requested = url.href;
+      return Response.json(payload);
+    }
+  );
+
+  assert.equal(
+    requested,
+    "https://cos.example/firepick-monitor/api/v1/stats.json"
+  );
+  assert.deepEqual(result, payload);
+});
+
+test("falls back to bundled API data when COS is unavailable", async () => {
+  const payload = { generatedAt: "bundled", total: 2 };
+  const result = await loadJSONData(
+    new Request("https://sources.yychuiyan.com/api/v1/stats"),
+    {
+      API_DATA_ORIGIN: "https://cos.example/firepick-monitor",
+      ASSETS: {
+        fetch: async () => Response.json(payload),
+      },
+    },
+    "/api/v1/stats.json",
+    async () => {
+      throw new Error("network unavailable");
+    }
+  );
+
+  assert.deepEqual(result, payload);
 });
