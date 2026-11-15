@@ -1590,6 +1590,8 @@ tags: 稳定, 高清</pre>
     let currentItems = [];
     let activeDetail = null;
     let toastTimer = null;
+    let dataLoadPromise = null;
+    let lastDataLoadAt = 0;
     const PAGE_META = {
       lines: { label: "线路池", title: "线路池 · 拾萤线路检测" },
       insights: { label: "运行分布", title: "运行分布 · 拾萤线路检测" },
@@ -1763,10 +1765,10 @@ tags: 稳定, 高清</pre>
       $("#topUpdated").textContent = generated.toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
       const freshness = $("#topFreshness");
       if (ageHours > 1) {
-        freshness.textContent = `数据已 ${Math.floor(ageHours)} 小时未更新`;
+        freshness.textContent = `数据已 ${Math.floor(ageHours)} 小时未更新 · 每分钟重试`;
         freshness.style.color = "var(--danger)";
       } else {
-        freshness.textContent = "检测快照 · 计划每 15 分钟更新";
+        freshness.textContent = "页面每分钟同步 · 检测计划每 15 分钟";
         freshness.style.color = "";
       }
     }
@@ -2202,25 +2204,39 @@ tags: 稳定, 高清</pre>
       window.scrollTo({ top: 0, behavior: "auto" });
     }
 
-    async function loadData() {
+    async function loadData({ announce = true, force = false } = {}) {
+      if (dataLoadPromise) return dataLoadPromise;
+      const now = Date.now();
+      if (!force && now - lastDataLoadAt < 30000) return;
+      lastDataLoadAt = now;
       const refresh = $("#refresh");
       refresh.disabled = true;
       refresh.classList.add("refreshing");
-      try {
-        const response = await fetch("./data/latest.json", { cache: "no-store" });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        render(await response.json());
-        showToast("已读取最新检测数据");
-      } catch (error) {
-        if (window.__FIREPICK_LATEST__) {
-          render(window.__FIREPICK_LATEST__);
-          showToast("实时请求失败，已使用内嵌数据");
-        } else {
-          $("#cards").replaceChildren(make("div", "empty", `读取检测数据失败：${error.message || error}`));
+      dataLoadPromise = (async () => {
+        try {
+          const response = await fetch("./data/latest.json", { cache: "no-store" });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          render(await response.json());
+          if (announce) showToast("已读取最新检测数据");
+        } catch (error) {
+          if (window.__FIREPICK_LATEST__) {
+            render(window.__FIREPICK_LATEST__);
+            if (announce) showToast("实时请求失败，已使用内嵌数据");
+          } else if (!state.data) {
+            $("#cards").replaceChildren(make("div", "empty", `读取检测数据失败：${error.message || error}`));
+          }
+        } finally {
+          refresh.disabled = false;
+          refresh.classList.remove("refreshing");
+          dataLoadPromise = null;
         }
-      } finally {
-        refresh.disabled = false;
-        refresh.classList.remove("refreshing");
+      })();
+      return dataLoadPromise;
+    }
+
+    function autoRefreshData() {
+      if (document.visibilityState === "visible") {
+        loadData({ announce: false });
       }
     }
 
@@ -2251,7 +2267,7 @@ tags: 稳定, 高清</pre>
         submitToggle.focus();
       }
     });
-    $("#refresh").addEventListener("click", loadData);
+    $("#refresh").addEventListener("click", () => loadData({ announce: true, force: true }));
     $("#search").addEventListener("input", (event) => {
       state.query = event.target.value.trim();
       state.page = 1;
@@ -2317,13 +2333,16 @@ tags: 稳定, 高清</pre>
       });
     });
     window.addEventListener("hashchange", () => activatePage(pageFromHash()));
+    document.addEventListener("visibilitychange", autoRefreshData);
+    window.addEventListener("focus", autoRefreshData);
+    window.setInterval(autoRefreshData, 60000);
     setTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
     const initialPage = pageFromHash();
     if (location.hash !== `#${initialPage}`) {
       history.replaceState(null, "", `#${initialPage}`);
     }
     activatePage(initialPage);
-    loadData();
+    loadData({ announce: false, force: true });
   </script>
 </body>
 </html>
