@@ -32,14 +32,6 @@ jobs:
             --pattern "Firepick-${VERSION}.ipa" \
             --pattern "AppIcon-${VERSION}.png" \
             --pattern "firepick.json"
-      - name: Point updater to GitHub Release IPA
-        run: |
-          set -euo pipefail
-          DOWNLOAD_URL="https://github.com/yychuiyan/firepick/releases/download/v${VERSION}/Firepick-${VERSION}.ipa"
-          jq --arg url "$DOWNLOAD_URL" \
-            '.apps[0].downloadURL = $url' \
-            release/firepick.json > release/firepick.json.next
-          mv release/firepick.json.next release/firepick.json
       - name: Install coscli
         run: |
           curl -fsSL \
@@ -79,6 +71,15 @@ jobs:
         run: |
           set -euo pipefail
           coscli -c "$COSCLI_CONFIG" cp \
+            "release/Firepick-${VERSION}.ipa" \
+            "cos://${COS_BUCKET}/firepick/Firepick-${VERSION}.ipa" \
+            --acl public-read \
+            --process-log=false \
+            --part-size 5 \
+            --thread-num 32 \
+            --max-thread-num 32 \
+            --meta 'Content-Type:application/octet-stream#Cache-Control:public, max-age=31536000, immutable'
+          coscli -c "$COSCLI_CONFIG" cp \
             "release/AppIcon-${VERSION}.png" \
             "cos://${COS_BUCKET}/firepick/AppIcon-${VERSION}.png" \
             --acl public-read \
@@ -96,9 +97,9 @@ jobs:
           curl -fsSL \
             "https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com/firepick/firepick.json?ts=$(date +%s)" \
             | jq -e --arg version "$VERSION" \
-                --arg url "https://github.com/yychuiyan/firepick/releases/download/v${VERSION}/Firepick-${VERSION}.ipa" \
+                --arg url "https://dl.yychuiyan.com/firepick/Firepick-${VERSION}.ipa" \
                 '.apps[0].version == $version and .apps[0].downloadURL == $url'
           curl -fsSL --range 0-1023 --output /dev/null \
-            "https://github.com/yychuiyan/firepick/releases/download/v${VERSION}/Firepick-${VERSION}.ipa"
+            "https://dl.yychuiyan.com/firepick/Firepick-${VERSION}.ipa"
           curl -fsSL --output /dev/null \
             "https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com/firepick/AppIcon-${VERSION}.png?ts=$(date +%s)"
