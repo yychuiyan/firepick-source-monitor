@@ -45,6 +45,22 @@ Recommended production domain:
 sources.yychuiyan.com
 ```
 
+Production files:
+
+```text
+https://sources.yychuiyan.com/data/cms-candidates.json
+https://sources.yychuiyan.com/data/quality.json
+https://sources.yychuiyan.com/data/stats.json
+```
+
+COS production mirror:
+
+```text
+https://firepick-1302621537.cos.ap-shanghai.myqcloud.com/firepick-monitor/data/cms-candidates.json
+https://firepick-1302621537.cos.ap-shanghai.myqcloud.com/firepick-monitor/data/quality.json
+https://firepick-1302621537.cos.ap-shanghai.myqcloud.com/firepick-monitor/data/stats.json
+```
+
 Recommended Cloudflare Pages project:
 
 ```text
@@ -82,4 +98,13 @@ coscli cp public/data/quality.json \
 Keep COS credentials in GitHub Secrets. Use a restricted sub-account that can
 only write `firepick-monitor/*`.
 
-Firepick should read Cloudflare first, then COS, then its bundled fallback.
+Add these secrets to enable automatic COS mirroring:
+
+```text
+COS_SECRET_ID
+COS_SECRET_KEY
+COS_BUCKET
+COS_REGION
+```
+
+Firepick reads COS first, then Cloudflare, then its bundled fallback.

@@ -4,26 +4,75 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Firepick Source Monitor</title>
+  <script>
+    try {
+      document.documentElement.dataset.theme =
+        localStorage.getItem("firepick-monitor-theme") || "auto";
+    } catch {}
+  </script>
   <style>
-    :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-    body { margin: 0; background: #111216; color: #eee; }
+    :root {
+      color-scheme: dark;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      --bg: #111216;
+      --text: #eee;
+      --muted: #989baa;
+      --panel: #1a1c23;
+      --table: #17191f;
+      --border: #2b2e39;
+      --accent: #ff8a00;
+      --good: #73d18b;
+      --bad: #ff7373;
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --text: #17191f;
+      --muted: #666b78;
+      --panel: #fff;
+      --table: #fff;
+      --border: #dfe2e8;
+      --accent: #e67800;
+      --good: #197a36;
+      --bad: #bc3030;
+    }
+    @media (prefers-color-scheme: light) {
+      :root[data-theme="auto"] {
+        color-scheme: light;
+        --bg: #f6f7f9;
+        --text: #17191f;
+        --muted: #666b78;
+        --panel: #fff;
+        --table: #fff;
+        --border: #dfe2e8;
+        --accent: #e67800;
+        --good: #197a36;
+        --bad: #bc3030;
+      }
+    }
+    body { margin: 0; background: var(--bg); color: var(--text); }
     main { width: min(1120px, calc(100% - 32px)); margin: 40px auto; }
     h1 { margin-bottom: 6px; }
-    .muted { color: #989baa; }
+    .header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .theme-button { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 999px; padding: 8px 12px; cursor: pointer; }
+    .muted { color: var(--muted); }
     .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 24px 0; }
-    .stat { background: #1a1c23; border: 1px solid #2b2e39; border-radius: 12px; padding: 16px; }
-    .stat strong { display: block; font-size: 28px; color: #ff8a00; }
-    table { width: 100%; border-collapse: collapse; background: #17191f; border-radius: 12px; overflow: hidden; }
-    th, td { padding: 10px 12px; border-bottom: 1px solid #282b34; text-align: left; }
-    th { color: #aeb1bf; font-weight: 600; }
+    .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .stat strong { display: block; font-size: 28px; color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; background: var(--table); border-radius: 12px; overflow: hidden; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { color: var(--muted); font-weight: 600; }
     td:first-child { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
-    .good { color: #73d18b; }
-    .bad { color: #ff7373; }
+    .good { color: var(--good); }
+    .bad { color: var(--bad); }
   </style>
 </head>
 <body>
 <main>
-  <h1>Firepick Source Monitor</h1>
+  <div class="header">
+    <h1>Firepick Source Monitor</h1>
+    <button id="theme" class="theme-button" type="button">主题：跟随系统</button>
+  </div>
   <div id="generated" class="muted">Loading latest data…</div>
   <section id="stats" class="stats"></section>
   <table>
@@ -34,6 +83,22 @@
 <script src="./data/latest.js"></script>
 <script>
   const text = (value) => document.createTextNode(value == null ? "" : String(value));
+  const themeButton = document.getElementById("theme");
+  const themes = ["auto", "light", "dark"];
+  const themeLabels = { auto: "跟随系统", light: "浅色", dark: "深色" };
+  let currentTheme = document.documentElement.dataset.theme || "auto";
+  function applyTheme(theme) {
+    currentTheme = theme;
+    document.documentElement.dataset.theme = theme;
+    themeButton.textContent = `主题：${themeLabels[theme]}`;
+    try { localStorage.setItem("firepick-monitor-theme", theme); } catch {}
+  }
+  themeButton.addEventListener("click", () => {
+    const next = themes[(themes.indexOf(currentTheme) + 1) % themes.length];
+    applyTheme(next);
+  });
+  applyTheme(currentTheme);
+
   function render(data) {
       document.getElementById("generated").textContent =
         `Updated ${data.generatedAt} · ${data.onlineCount}/${data.total} online`;
