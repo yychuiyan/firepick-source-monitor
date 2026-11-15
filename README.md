@@ -108,3 +108,30 @@ COS_REGION
 ```
 
 Firepick reads COS first, then Cloudflare, then its bundled fallback.
+
+## Secret safety
+
+This repository contains no credentials. Configure the following as GitHub
+repository Actions secrets:
+
+```text
+COS_SECRET_ID
+COS_SECRET_KEY
+COS_BUCKET
+COS_REGION
+CLOUDFLARE_API_TOKEN
+CLOUDFLARE_ACCOUNT_ID
+```
+
+GitHub masks secret values in workflow logs, and the workflow does not run for
+untrusted pull requests. Run coscli configuration through stdin as the workflow
+does; never commit `$HOME/.cos.yaml`.
+
+Use a dedicated Tencent Cloud sub-account and CAM policy limited to public-read
+uploads under:
+
+```text
+firepick-1302621537/firepick-monitor/*
+```
+
+Do not grant bucket deletion, credential, or account-level permissions.
