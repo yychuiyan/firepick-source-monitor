@@ -75,6 +75,9 @@ jobs:
             "cos://${COS_BUCKET}/firepick/Firepick-${VERSION}.ipa" \
             --acl public-read \
             --process-log=false \
+            --part-size 5 \
+            --thread-num 32 \
+            --max-thread-num 32 \
             --meta 'Content-Type:application/octet-stream#Cache-Control:public, max-age=31536000, immutable'
           coscli -c "$COSCLI_CONFIG" cp \
             "release/AppIcon-${VERSION}.png" \
