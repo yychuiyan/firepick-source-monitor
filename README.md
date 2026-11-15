@@ -151,6 +151,17 @@ Worker 使用 `public/` 作为静态资源，并由 `run_worker_first` 接管
 路由；配置 Cloudflare 凭据后可以执行 `npm run api:deploy`。部署前的
 `.json` 静态路由仍可由 GitHub Pages 或 COS 直接读取。
 
+Worker 同时配置了每 15 分钟一次的 Cron Trigger，作为 GitHub Actions
+定时调度的独立兜底。部署前需要配置一个仅允许该仓库 `Actions: write`
+的 GitHub Token：
+
+```bash
+npx wrangler secret put GITHUB_DISPATCH_TOKEN
+npm run api:deploy
+```
+
+Cron 触发时，Worker 会调用 GitHub `workflow_dispatch` 启动 `monitor.yml`。
+
 ## 网页面板
 
 `public/index.html` 提供浅色和深色主题，首次访问跟随系统设置，之后会记住

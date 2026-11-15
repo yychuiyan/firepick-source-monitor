@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { handleAPIRequest, querySources } from "./index.mjs";
+import {
+  dispatchMonitorWorkflow,
+  handleAPIRequest,
+  querySources,
+} from "./index.mjs";
 
 const sources = [
   {
@@ -91,4 +95,36 @@ test("serves single source details and standard best lines", async () => {
     (await best.json()).sources.map((item) => item.id),
     ["fast", "down"]
   );
+});
+
+test("dispatches the monitor workflow on the Worker cron", async () => {
+  let captured;
+  const fetchImpl = async (url, init) => {
+    captured = { url, init };
+    return new Response(null, { status: 204 });
+  };
+  const ok = await dispatchMonitorWorkflow(fetchImpl, {
+    GITHUB_DISPATCH_TOKEN: "token",
+  });
+  assert.equal(ok, true);
+  assert.equal(
+    captured.url,
+    "https://api.github.com/repos/yychuiyan/firepick-source-monitor/actions/workflows/monitor.yml/dispatches"
+  );
+  assert.equal(captured.init.method, "POST");
+  assert.equal(captured.init.headers.Authorization, "Bearer token");
+  assert.deepEqual(JSON.parse(captured.init.body), { ref: "main" });
+});
+
+test("does not dispatch without a Worker token", async () => {
+  let called = false;
+  const ok = await dispatchMonitorWorkflow(
+    async () => {
+      called = true;
+      return new Response(null, { status: 204 });
+    },
+    {}
+  );
+  assert.equal(ok, false);
+  assert.equal(called, false);
 });

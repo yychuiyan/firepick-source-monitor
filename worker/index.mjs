@@ -12,7 +12,41 @@ export default {
       loadJSON: (pathname) => loadAssetJSON(request, env, pathname),
     });
   },
+
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(dispatchMonitorWorkflow(fetch, env));
+  },
 };
+
+export async function dispatchMonitorWorkflow(fetchImpl = fetch, env = {}) {
+  const token = String(env.GITHUB_DISPATCH_TOKEN || "").trim();
+  if (!token) {
+    console.error("GITHUB_DISPATCH_TOKEN is not configured");
+    return false;
+  }
+  const repository = String(
+    env.GITHUB_REPOSITORY || "yychuiyan/firepick-source-monitor"
+  ).trim();
+  const ref = String(env.GITHUB_REF_NAME || "main").trim() || "main";
+  const response = await fetchImpl(
+    `https://api.github.com/repos/${repository}/actions/workflows/monitor.yml/dispatches`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "User-Agent": "firepick-source-monitor-worker",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify({ ref }),
+    }
+  );
+  if (!response.ok) {
+    console.error(`GitHub workflow dispatch failed: HTTP ${response.status}`);
+  }
+  return response.ok;
+}
 
 export async function handleAPIRequest(request, { loadJSON }) {
   if (request.method === "OPTIONS") {
