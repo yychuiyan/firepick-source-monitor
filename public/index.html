@@ -530,6 +530,36 @@
     .result-summary { margin-left: auto; color: var(--faint); font-size: 10px; white-space: nowrap; }
     .clear-button { padding: 5px 8px; border: 0; background: transparent; color: var(--muted); font-size: 10px; cursor: pointer; }
     .clear-button:hover { color: var(--amber); }
+    .probe-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 31px;
+      padding: 5px 9px;
+      border: 1px solid color-mix(in srgb, var(--cyan) 34%, var(--line));
+      border-radius: 8px;
+      background: var(--cyan-soft);
+      color: var(--cyan);
+      font-size: 10px;
+      cursor: pointer;
+    }
+    .probe-button:hover { border-color: color-mix(in srgb, var(--cyan) 62%, var(--line)); filter: brightness(1.04); }
+    .probe-button:disabled { cursor: wait; opacity: .72; }
+    .probe-button svg { width: 12px; height: 12px; }
+    .probe-button.running svg { animation: spin 1.2s linear infinite; }
+    .realtime-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: var(--cyan-soft);
+      color: var(--cyan);
+      font-family: ui-monospace, monospace;
+      font-size: 8px;
+    }
+    .realtime-chip::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+    .realtime-chip.offline { background: var(--danger-soft); color: var(--danger); }
     .workbench-grid { display: grid; grid-template-columns: minmax(0, 1fr) 276px; gap: 24px; align-items: start; }
     .results-area { min-width: 0; }
     .cards {
@@ -1452,7 +1482,8 @@
       .status-tabs::-webkit-scrollbar { display: none; }
       .status-tab { flex: 0 0 auto; }
       .result-summary { width: auto; margin-left: 0; }
-      .clear-button { margin-left: auto; }
+      .probe-button { margin-left: auto; }
+      .clear-button { margin-left: 0; }
       .cards { grid-template-columns: 1fr; padding: 10px; }
       .cards.source-list { padding: 4px 12px 8px; }
       .source-list-item {
@@ -1568,9 +1599,9 @@ tags: 稳定, 高清</pre>
             </div>
           </div>
         </div>
-        <button id="refresh" class="text-button" type="button" aria-label="重新读取检测数据">
+        <button id="refresh" class="text-button" type="button" aria-label="重新读取已发布的检测快照">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M18.4 9A7 7 0 0 0 6.2 6.2L4 8m2 7a7 7 0 0 0 11.8 2.8L20 16"/></svg>
-          <span class="refresh-label">重新读取</span>
+          <span class="refresh-label">读取快照</span>
         </button>
         <button id="theme" class="icon-button" type="button" role="switch" aria-checked="false" aria-label="切换到浅色主题">
           <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.8 6.8 0 0 0 21 12.8Z"/></svg>
@@ -1680,6 +1711,10 @@ tags: 稳定, 高清</pre>
               <button class="status-tab" data-status="offline" type="button">离线 <b>0</b></button>
             </div>
             <span id="resultSummary" class="result-summary">正在读取…</span>
+            <button id="probeNow" class="probe-button" type="button" title="测试全部采集站的列表接口速度，每批最多 20 条">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 12 18 6"/></svg>
+              <span id="probeNowLabel">速度测试</span>
+            </button>
             <button id="clearFilters" class="clear-button" type="button">清除筛选</button>
           </div>
           <div id="cards" class="cards">
@@ -1905,6 +1940,8 @@ tags: 稳定, 高清</pre>
       sort: "speed",
       view: "cards",
       page: 1,
+      realtimeCheckedAt: null,
+      realtimeCount: 0,
       favorites: new Set()
     };
     let currentItems = [];
@@ -1915,6 +1952,8 @@ tags: 稳定, 高清</pre>
     let systemStatus = null;
     let statusLoadPromise = null;
     let lastStatusLoadAt = 0;
+    let realtimeProbePromise = null;
+    const REALTIME_PROBE_BATCH_SIZE = 20;
     const PAGE_META = {
       lines: { label: "线路池", title: "线路池 · 拾萤线路检测" },
       insights: { label: "运行分布", title: "运行分布 · 拾萤线路检测" },
@@ -1946,6 +1985,15 @@ tags: 稳定, 高清</pre>
     function formatLatency(value) {
       if (!value || !Number.isFinite(Number(value))) return "未测得";
       return `${Math.round(Number(value))} 毫秒`;
+    }
+
+    function effectiveLatency(item) {
+      const value = item.realtimeLatencyMs ?? item.listMs;
+      return Number.isFinite(Number(value)) && Number(value) > 0 ? Number(value) : Infinity;
+    }
+
+    function effectiveOnline(item) {
+      return item.realtimeStatus ? item.realtimeStatus === "online" : item.online;
     }
 
     function hostOf(item) {
@@ -2001,10 +2049,10 @@ tags: 稳定, 高清</pre>
       if (!state.data) return [];
       const keyword = state.query.toLowerCase();
       let items = [...(state.data.results || [])];
-      if (state.status === "online") items = items.filter((item) => item.online);
-      if (state.status === "offline") items = items.filter((item) => !item.online);
-      if (state.status === "quality") items = items.filter((item) => item.online && qualityRank(item) > 0);
-      if (state.status === "slow") items = items.filter((item) => item.online && item.listMs >= 2000);
+      if (state.status === "online") items = items.filter(effectiveOnline);
+      if (state.status === "offline") items = items.filter((item) => !effectiveOnline(item));
+      if (state.status === "quality") items = items.filter((item) => effectiveOnline(item) && qualityRank(item) > 0);
+      if (state.status === "slow") items = items.filter((item) => effectiveOnline(item) && effectiveLatency(item) >= 2000);
       if (state.status === "favorite") items = items.filter((item) => state.favorites.has(item.key));
       if (state.tag !== "all") items = items.filter((item) => (item.tags || []).includes(state.tag));
       if (keyword) {
@@ -2019,8 +2067,7 @@ tags: 稳定, 高清</pre>
       }
       items.sort((a, b) => {
         if (state.sort === "speed") {
-          return (Number.isFinite(Number(a.listMs)) ? Number(a.listMs) : Infinity)
-            - (Number.isFinite(Number(b.listMs)) ? Number(b.listMs) : Infinity)
+          return effectiveLatency(a) - effectiveLatency(b)
             || (b.score || 0) - (a.score || 0);
         }
         if (state.sort === "uptime") return (b.uptime || -1) - (a.uptime || -1) || b.score - a.score;
@@ -2034,10 +2081,10 @@ tags: 稳定, 高清</pre>
     }
 
     function setHealth(data) {
-      const onlineRate = data.total ? (data.onlineCount / data.total) * 100 : 0;
-      const onlineItems = data.results.filter((item) => item.online);
+      const onlineItems = data.results.filter(effectiveOnline);
+      const onlineRate = data.total ? (onlineItems.length / data.total) * 100 : 0;
       const uptime = average(onlineItems.map((item) => item.uptime));
-      const latency = average(onlineItems.map((item) => item.listMs));
+      const latency = average(onlineItems.map(effectiveLatency));
       const responseScore = latency ? clamp(100 - Math.max(0, latency - 300) / 15, 0, 100) : 0;
       const score = Math.round(onlineRate * .5 + (uptime || onlineRate) * .3 + responseScore * .2);
       const label = score >= 80 ? "整体稳健" : score >= 60 ? "局部波动" : "建议换源";
@@ -2049,20 +2096,20 @@ tags: 稳定, 高清</pre>
         : score >= 60
           ? "部分线路存在波动，播放失败时优先切换高清和低延迟线路。"
           : "可用线路比例偏低，拾萤应提高备用源切换频率。";
-      $("#healthOnline").textContent = `${data.onlineCount}/${data.total}`;
+      $("#healthOnline").textContent = `${onlineItems.length}/${data.total}`;
       $("#healthUptime").textContent = uptime ? `${uptime.toFixed(1)}%` : "—";
       $("#healthLatency").textContent = formatLatency(latency);
     }
 
     function setMetrics(data) {
-      const onlineItems = data.results.filter((item) => item.online);
-      const latency = average(onlineItems.map((item) => item.listMs));
+      const onlineItems = data.results.filter(effectiveOnline);
+      const latency = average(onlineItems.map(effectiveLatency));
       const resourceTotal = data.results.reduce((sum, item) => sum + (Number(item.resourceCount) || 0), 0);
       const values = [
         data.total,
-        data.onlineCount,
-        `${data.total ? Math.round((data.onlineCount / data.total) * 1000) / 10 : 0}%`,
-        data.results.filter((item) => item.online && qualityRank(item) > 0).length,
+        onlineItems.length,
+        `${data.total ? Math.round((onlineItems.length / data.total) * 1000) / 10 : 0}%`,
+        data.results.filter((item) => effectiveOnline(item) && qualityRank(item) > 0).length,
         formatLatency(latency),
         formatNumber(resourceTotal)
       ];
@@ -2073,14 +2120,14 @@ tags: 稳定, 高清</pre>
       const pulse = $("#pulseBars");
       pulse.replaceChildren();
       data.results.forEach((item) => {
-        const bar = make("button", `pulse${item.online ? "" : " offline"}`);
+        const bar = make("button", `pulse${effectiveOnline(item) ? "" : " offline"}`);
         bar.type = "button";
-        bar.title = `${item.name} · ${item.online ? "在线" : "离线"}`;
+        bar.title = `${item.name} · ${effectiveOnline(item) ? "在线" : "离线"}`;
         bar.setAttribute("aria-label", bar.title);
         bar.addEventListener("click", () => openDetail(item));
         pulse.append(bar);
       });
-      $("#pulseOnline").textContent = data.onlineCount;
+      $("#pulseOnline").textContent = onlineItems.length;
     }
 
     function setUpdateTime(data) {
@@ -2101,11 +2148,11 @@ tags: 稳定, 高清</pre>
       if (!state.data) return;
       const counts = {
         all: state.data.results.length,
-        online: state.data.results.filter((item) => item.online).length,
-        quality: state.data.results.filter((item) => item.online && qualityRank(item) > 0).length,
-        slow: state.data.results.filter((item) => item.online && item.listMs >= 2000).length,
+        online: state.data.results.filter(effectiveOnline).length,
+        quality: state.data.results.filter((item) => effectiveOnline(item) && qualityRank(item) > 0).length,
+        slow: state.data.results.filter((item) => effectiveOnline(item) && effectiveLatency(item) >= 2000).length,
         favorite: state.data.results.filter((item) => state.favorites.has(item.key)).length,
-        offline: state.data.results.filter((item) => !item.online).length
+        offline: state.data.results.filter((item) => !effectiveOnline(item)).length
       };
       document.querySelectorAll(".status-tab").forEach((tab) => {
         const active = tab.dataset.status === state.status;
@@ -2147,7 +2194,7 @@ tags: 稳定, 高清</pre>
     }
 
     function cardFor(item) {
-      const card = make("article", `source-card${item.online ? "" : " offline"}`);
+      const card = make("article", `source-card${effectiveOnline(item) ? "" : " offline"}`);
       const head = make("div", "card-head");
       const avatar = make("div", "source-avatar", item.name.slice(0, 1));
       const title = make("div", "source-title");
@@ -2159,11 +2206,33 @@ tags: 稳定, 高清</pre>
       actions.append(favoriteButton(item));
       head.append(avatar, title, actions);
 
-      const badge = make("span", "source-badge", item.online ? "完整可用" : `检测失败 · ${errorLabel(item.error) || "未知原因"}`);
+      const badge = make(
+        "span",
+        "source-badge",
+        item.realtimeStatus === "offline"
+          ? `即时失败 · ${errorLabel(item.realtimeError) || "无法连接"}`
+          : effectiveOnline(item)
+            ? "完整可用"
+            : `检测失败 · ${errorLabel(item.error) || "未知原因"}`
+      );
       const desc = make("p", "source-desc", item.description || "该线路暂未提供描述，可结合响应、可用率和资源量判断。");
       const stats = make("div", "card-stats");
+      const liveLatency = item.realtimeStatus === "online" ? formatLatency(item.realtimeLatencyMs) : null;
+      const latencyValue =
+        liveLatency ||
+        (item.realtimeStatus === "offline"
+          ? "即时失败"
+          : item.online
+            ? formatLatency(item.listMs)
+            : "未测得");
+      const latencyLabel =
+        item.realtimeStatus === "online"
+          ? "即时响应"
+          : item.realtimeStatus === "offline"
+            ? "即时列表接口"
+            : "列表响应";
       const values = [
-        [item.online ? formatLatency(item.listMs) : "未测得", "列表响应"],
+        [latencyValue, latencyLabel],
         [item.uptime != null ? `${item.uptime}%` : "—", "自测可用率"],
         [formatNumber(item.resourceCount), "接口资源量"],
         [`${item.todayUpdates || 0} 条`, "今日更新"]
@@ -2176,6 +2245,17 @@ tags: 稳定, 高清</pre>
       const quality = make("div", "quality-line");
       if (qualityRank(item)) quality.append(make("span", "quality-chip", qualityLabel(item)));
       else quality.append(make("span", "quality-muted", "暂未识别 HLS 清晰度"));
+      if (item.realtimeStatus) {
+        const live = make(
+          "span",
+          `realtime-chip${item.realtimeStatus === "offline" ? " offline" : ""}`,
+          item.realtimeStatus === "online"
+            ? `即时在线 ${formatLatency(item.realtimeLatencyMs).replace(" 毫秒", "ms")}`
+            : `即时失败 · ${errorLabel(item.realtimeError) || "无法连接"}`
+        );
+        live.title = `速度测试于 ${dateLabel(item.realtimeCheckedAt)}`;
+        quality.append(live);
+      }
 
       const tags = make("div", "tags");
       (item.tags || []).slice(0, 4).forEach((tag) => tags.append(make("span", "tag", tag)));
@@ -2195,12 +2275,13 @@ tags: 稳定, 高清</pre>
       const avatar = make("div", "source-avatar", item.name.slice(0, 1));
       const copy = make("div", "list-copy");
       const titleLine = make("div", "list-title-line");
+      const liveState = item.realtimeStatus === "online" ? "在线" : item.realtimeStatus === "offline" ? "失败" : null;
       titleLine.append(
         make("h3", "", item.name),
         make(
           "span",
-          `list-status-inline${item.online ? "" : " offline"}`,
-          item.online ? "可用" : "离线"
+          `list-status-inline${liveState === "失败" || (!liveState && !item.online) ? " offline" : ""}`,
+          liveState ? `即时${liveState}` : item.online ? "可用" : "离线"
         )
       );
       const metaLine = make("div", "list-meta-line");
@@ -2219,8 +2300,22 @@ tags: 稳定, 高清</pre>
       actions.append(detail);
 
       const metrics = make("div", "source-list-metrics");
+      const liveLatency = item.realtimeStatus === "online" ? formatLatency(item.realtimeLatencyMs) : null;
+      const latencyValue =
+        liveLatency ||
+        (item.realtimeStatus === "offline"
+          ? "即时失败"
+          : item.online
+            ? formatLatency(item.listMs)
+            : "未测得");
+      const latencyLabel =
+        item.realtimeStatus === "online"
+          ? "即时响应"
+          : item.realtimeStatus === "offline"
+            ? "即时列表接口"
+            : "列表响应";
       const values = [
-        [item.online ? formatLatency(item.listMs) : "未测得", "列表响应"],
+        [latencyValue, latencyLabel],
         [item.uptime != null ? `${item.uptime}%` : "—", "自测可用率"],
         [formatNumber(item.resourceCount), "接口资源量"],
         [qualityRank(item) ? qualityLabel(item) : "未知", "清晰度"],
@@ -2281,7 +2376,10 @@ tags: 稳定, 高清</pre>
       $("#listView").classList.toggle("active", state.view === "list");
       $("#cardView").setAttribute("aria-pressed", String(state.view === "cards"));
       $("#listView").setAttribute("aria-pressed", String(state.view === "list"));
-      $("#resultSummary").textContent = `${currentItems.length} 条结果 · 当前为${state.status === "all" ? "全部线路" : $("#statusTabs .active")?.textContent.replace(/\d+/g, "").trim() || "筛选结果"}`;
+      const realtimeNote = state.realtimeCheckedAt
+        ? ` · 已测试速度 ${state.realtimeCount} 条`
+        : "";
+      $("#resultSummary").textContent = `${currentItems.length} 条结果 · 当前为${state.status === "all" ? "全部线路" : $("#statusTabs .active")?.textContent.replace(/\d+/g, "").trim() || "筛选结果"}${realtimeNote}`;
       const cards = $("#cards");
       cards.classList.toggle("source-list", state.view === "list");
       cards.replaceChildren();
@@ -2327,8 +2425,8 @@ tags: 稳定, 高清</pre>
     }
 
     function renderSideRanks(data) {
-      const online = data.results.filter((item) => item.online);
-      renderRank("#fastestRank", [...online].sort((a, b) => (a.listMs || Infinity) - (b.listMs || Infinity)), (item) => formatLatency(item.listMs).replace(" 毫秒", "ms"));
+      const online = data.results.filter(effectiveOnline);
+      renderRank("#fastestRank", [...online].sort((a, b) => effectiveLatency(a) - effectiveLatency(b)), (item) => formatLatency(effectiveLatency(item)).replace(" 毫秒", "ms"));
       renderRank("#resourceRank", [...online].filter((item) => item.resourceCount).sort((a, b) => b.resourceCount - a.resourceCount), (item) => formatNumber(item.resourceCount));
       renderRank("#updateRank", [...online].sort((a, b) => (b.todayUpdates || 0) - (a.todayUpdates || 0)), (item) => `${item.todayUpdates || 0} 条`);
     }
@@ -2797,6 +2895,15 @@ tags: 稳定, 高清</pre>
         ["收录时间", item.establishedAt || "未提供"],
         ["检测结论", item.online ? "列表、搜索、详情和播放地址完整通过" : errorLabel(item.error) || "检测失败"]
       ];
+      if (item.realtimeStatus) {
+        details.splice(2, 0, [
+          "速度测试",
+          item.realtimeStatus === "online"
+            ? `在线 · ${formatLatency(item.realtimeLatencyMs)}`
+            : `失败 · ${errorLabel(item.realtimeError) || "无法连接"}`
+        ]);
+        details.splice(3, 0, ["速度测试时间", dateLabel(item.realtimeCheckedAt)]);
+      }
       const grid = $("#dialogDetails");
       grid.replaceChildren();
       details.forEach(([label, value]) => {
@@ -2834,7 +2941,24 @@ tags: 稳定, 高清</pre>
     }
 
     function render(data) {
+      const snapshotChanged = state.data?.generatedAt !== data.generatedAt;
+      const previousResults = new Map(
+        (state.data?.results || []).map((item) => [item.key, item])
+      );
       state.data = data;
+      if (snapshotChanged) {
+        state.realtimeCheckedAt = null;
+        state.realtimeCount = 0;
+      } else {
+        data.results.forEach((item) => {
+          const previous = previousResults.get(item.key);
+          if (!previous?.realtimeStatus) return;
+          item.realtimeStatus = previous.realtimeStatus;
+          item.realtimeLatencyMs = previous.realtimeLatencyMs;
+          item.realtimeError = previous.realtimeError;
+          item.realtimeCheckedAt = previous.realtimeCheckedAt;
+        });
+      }
       currentItems = [];
       state.page = 1;
       fillTagFilter(data);
@@ -2901,7 +3025,7 @@ tags: 稳定, 高清</pre>
           const response = await fetch(`./data/latest.json?ts=${Date.now()}`, { cache: "no-store" });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           render(await response.json());
-          if (announce) showToast("已读取最新检测数据");
+          if (announce) showToast("已读取最新检测快照");
         } catch (error) {
           if (window.__FIREPICK_LATEST__) {
             render(window.__FIREPICK_LATEST__);
@@ -2918,6 +3042,70 @@ tags: 稳定, 高清</pre>
       return dataLoadPromise;
     }
 
+    async function runRealtimeProbe() {
+      if (realtimeProbePromise) return realtimeProbePromise;
+      const targets = [...(state.data?.results || [])];
+      if (!targets.length) {
+        showToast("当前没有可进行速度测试的线路");
+        return;
+      }
+      const button = $("#probeNow");
+      const label = $("#probeNowLabel");
+      button.disabled = true;
+      button.classList.add("running");
+      label.textContent = `速度测试 0/${targets.length}`;
+      realtimeProbePromise = (async () => {
+        try {
+          let processed = 0;
+          let online = 0;
+          let offline = 0;
+          state.realtimeCount = 0;
+          for (let index = 0; index < targets.length; index += REALTIME_PROBE_BATCH_SIZE) {
+            const batch = targets.slice(index, index + REALTIME_PROBE_BATCH_SIZE);
+            const ids = batch.map((item) => item.key).join(",");
+            const response = await fetch(
+              `./api/v1/probe?ids=${encodeURIComponent(ids)}&ts=${Date.now()}`,
+              { cache: "no-store", headers: { Accept: "application/json" } }
+            );
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload) {
+              throw new Error(payload?.message || `HTTP ${response.status}`);
+            }
+            const byID = new Map(payload.results.map((item) => [item.id, item]));
+            state.data.results.forEach((item) => {
+              const result = byID.get(item.key);
+              if (!result) return;
+              item.realtimeStatus = result.status;
+              item.realtimeLatencyMs = result.latencyMs;
+              item.realtimeError = result.error;
+              item.realtimeCheckedAt = result.checkedAt;
+            });
+            processed += payload.results.length;
+            online += payload.online;
+            offline += payload.offline;
+            state.realtimeCheckedAt = payload.checkedAt;
+            state.realtimeCount += payload.results.length;
+            label.textContent = `速度测试 ${processed}/${targets.length}`;
+            setHealth(state.data);
+            setMetrics(state.data);
+            renderResults();
+            renderSideRanks(state.data);
+          }
+          showToast(
+            `速度测试完成：${processed} 条中 ${online} 条在线，${offline} 条异常`
+          );
+        } catch (error) {
+          showToast(`速度测试失败：${error.message || error}`);
+        } finally {
+          button.disabled = false;
+          button.classList.remove("running");
+          label.textContent = "速度测试";
+          realtimeProbePromise = null;
+        }
+      })();
+      return realtimeProbePromise;
+    }
+
     function autoRefreshData() {
       if (document.visibilityState === "visible") {
         loadData({ announce: false });
@@ -2928,6 +3116,7 @@ tags: 稳定, 高清</pre>
     $("#theme").addEventListener("click", () => {
       setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
     });
+    $("#probeNow").addEventListener("click", runRealtimeProbe);
     const submitToggle = $("#submitToggle");
     const submitPopover = $("#submitPopover");
     function setSubmitMenu(open) {
@@ -2980,6 +3169,15 @@ tags: 稳定, 高清</pre>
       const button = event.target.closest("[data-status]");
       if (!button) return;
       state.status = button.dataset.status;
+      state.sort = {
+        all: "speed",
+        online: "speed",
+        quality: "quality",
+        slow: "speed",
+        favorite: "speed",
+        offline: "name"
+      }[state.status] || state.sort;
+      $("#sort").value = state.sort;
       state.page = 1;
       renderResults();
     });

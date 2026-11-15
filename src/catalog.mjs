@@ -119,6 +119,114 @@ export function mergeCandidates({ seeds = [], catalog = [], discovered = [], exc
   return merged;
 }
 
+export function isDeadLink(
+  source,
+  {
+    now = new Date(),
+    deadAfterDays = 30,
+    minimumOfflineChecks = 3,
+  } = {}
+) {
+  if (source?.status === "online") return false;
+  const offlineChecks = Number(source?.history?.offlineCount || 0);
+  if (offlineChecks < minimumOfflineChecks) return false;
+  const lastOnline =
+    source?.lastOnlineAt ||
+    source?.history?.lastOnlineAt ||
+    source?.firstSeenAt ||
+    source?.lastCheckedAt;
+  if (!lastOnline) return false;
+  const lastOnlineTime = new Date(lastOnline).getTime();
+  const nowTime = new Date(now).getTime();
+  if (!Number.isFinite(lastOnlineTime) || !Number.isFinite(nowTime)) return false;
+  return nowTime - lastOnlineTime >= deadAfterDays * 24 * 60 * 60 * 1000;
+}
+
+export function selectCandidatesForProbe({
+  merged = [],
+  catalog = [],
+  limit = 240,
+  freshReserve = 40,
+  now = new Date(),
+  deadAfterDays = 30,
+}) {
+  const catalogByHost = new Map(
+    catalog.map((item) => [canonicalHost(item?.api), item]).filter(([host]) => host)
+  );
+  const fixed = [];
+  const online = [];
+  const fresh = [];
+  const recentOffline = [];
+  const dead = [];
+
+  for (const item of merged) {
+    const previous = catalogByHost.get(canonicalHost(item?.api));
+    if (item.discoverySource === "seed") {
+      fixed.push(item);
+    } else if (previous?.status === "online") {
+      online.push(item);
+    } else if (!previous) {
+      fresh.push(item);
+    } else if (isDeadLink(previous, { now, deadAfterDays })) {
+      dead.push(item);
+    } else {
+      recentOffline.push(item);
+    }
+  }
+
+  recentOffline.sort(
+    (a, b) =>
+      timestamp(
+        catalogByHost.get(canonicalHost(b.api))?.lastOnlineAt ||
+          catalogByHost.get(canonicalHost(b.api))?.history?.lastOnlineAt
+      ) -
+        timestamp(
+          catalogByHost.get(canonicalHost(a.api))?.lastOnlineAt ||
+            catalogByHost.get(canonicalHost(a.api))?.history?.lastOnlineAt
+        ) ||
+      Number(catalogByHost.get(canonicalHost(b.api))?.score || 0) -
+        Number(catalogByHost.get(canonicalHost(a.api))?.score || 0)
+  );
+
+  const selected = [];
+  const selectedHosts = new Set();
+  const add = (item) => {
+    const host = canonicalHost(item?.api);
+    if (!host || selectedHosts.has(host)) return false;
+    selectedHosts.add(host);
+    selected.push(item);
+    return true;
+  };
+
+  fixed.forEach(add);
+  online.forEach(add);
+  const freshQuota = Math.max(0, Math.min(freshReserve, limit - selected.length));
+  fresh.slice(0, freshQuota).forEach(add);
+  recentOffline
+    .slice(0, Math.max(0, limit - selected.length))
+    .forEach(add);
+  // If there are not enough recent lines, use additional new candidates.
+  if (selected.length < limit) {
+    fresh.slice(freshQuota, freshQuota + limit - selected.length).forEach(add);
+  }
+
+  return {
+    items: selected,
+    stats: {
+      limit,
+      freshReserve,
+      merged: merged.length,
+      selected: selected.length,
+      fixed: fixed.length,
+      online: online.length,
+      freshAvailable: fresh.length,
+      freshSelected: selected.filter((item) => fresh.includes(item)).length,
+      recentOffline: recentOffline.length,
+      deadSkipped: dead.length,
+    },
+  };
+}
+
 export function buildCatalog(results, previousCatalog = [], generatedAt = new Date().toISOString()) {
   const previousByHost = new Map(
     previousCatalog.map((item) => [canonicalHost(item?.api), item])
@@ -131,7 +239,7 @@ export function buildCatalog(results, previousCatalog = [], generatedAt = new Da
         Number(history.onlineCount || 0) + (result.online === true ? 1 : 0);
       const offlineCount =
         Number(history.offlineCount || 0) + (result.online === true ? 0 : 1);
-      return {
+      const entry = {
         key: result.key,
         name: result.name,
         api: result.api,
@@ -178,6 +286,18 @@ export function buildCatalog(results, previousCatalog = [], generatedAt = new Da
             : generatedAt,
         },
       };
+      entry.monitoringState =
+        entry.status === "online"
+          ? "online"
+          : isDeadLink(entry, { now: generatedAt })
+            ? "dead"
+            : "recent-offline";
+      return entry;
     })
     .sort((a, b) => Number(b.online || 0) - Number(a.online || 0) || b.score - a.score);
+}
+
+function timestamp(value) {
+  const parsed = new Date(value || 0).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
 }

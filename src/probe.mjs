@@ -6,7 +6,9 @@ import { fileURLToPath } from "node:url";
 import {
   buildCatalog,
   canonicalHost,
+  isDeadLink,
   mergeCandidates,
+  selectCandidatesForProbe,
 } from "./catalog.mjs";
 import { writeReadOnlyAPI } from "./api-data.mjs";
 import { discoverInternetSources } from "./discovery.mjs";
@@ -27,6 +29,8 @@ const keywords = String(process.env.PROBE_KEYWORDS || "庆余年,三体")
 const qualityProbeLimit = numberEnv("QUALITY_PROBE_LIMIT", 18);
 const discoveryEnabled = process.env.DISCOVERY !== "off";
 const discoveryLimit = numberEnv("DISCOVERY_LIMIT", 240);
+const freshDiscoveryReserve = numberEnv("FRESH_DISCOVERY_RESERVE", 40);
+const deadLinkAfterDays = numberEnv("DEAD_LINK_AFTER_DAYS", 30);
 const bestCandidateLimit = numberEnv("BEST_CANDIDATE_LIMIT", 16);
 const adultPattern =
   /色|黄|AV|av|成人|伦理|福利|里番|麻豆|杏吧|美少女|湿乐园|番号|X资源|X站|黑料|约炮|裸|做爱|激情/;
@@ -72,12 +76,12 @@ async function loadCandidates() {
       ...discovered,
     ],
     excluded: [...exclusions],
-  }).slice(0, discoveryLimit);
+  });
   console.log(
     `Catalog ${previousCatalog.length}, submissions ${submissions.length}, ` +
       `internet discoveries ${discovered.length}, excluded ${exclusions.size}`
   );
-  console.log(`Probing ${merged.length} candidates`);
+  console.log(`Merged ${merged.length} candidates`);
   return { providers: merged, previousCatalog };
 }
 
@@ -385,7 +389,20 @@ async function writeJSON(name, value) {
   );
 }
 
-const { providers: candidates, previousCatalog } = await loadCandidates();
+const { providers: mergedCandidates, previousCatalog } = await loadCandidates();
+const selection = selectCandidatesForProbe({
+  merged: mergedCandidates,
+  catalog: previousCatalog,
+  limit: discoveryLimit,
+  freshReserve: freshDiscoveryReserve,
+  deadAfterDays: deadLinkAfterDays,
+});
+const candidates = selection.items;
+console.log(
+  `Selected ${selection.stats.selected}/${selection.stats.merged} candidates ` +
+    `(fresh ${selection.stats.freshSelected}/${selection.stats.freshAvailable}, ` +
+    `dead skipped ${selection.stats.deadSkipped}, reserve ${freshDiscoveryReserve})`
+);
 const results = await mapLimit(candidates, concurrency, probe);
 const previousByHost = new Map(
   previousCatalog.map((item) => [canonicalHost(item.api), item])
@@ -548,16 +565,45 @@ const statsPayload = {
   ).length,
   withRating: results.filter((item) => item.rating > 0).length,
   discoverySources: discoverySourceStats,
+  candidateSelection: selection.stats,
 };
 await writeJSON("stats.json", statsPayload);
 
-const catalog = buildCatalog(results, previousCatalog, generatedAt);
+const activeCatalog = buildCatalog(results, previousCatalog, generatedAt);
+const activeHosts = new Set(
+  activeCatalog.map((item) => canonicalHost(item.api)).filter(Boolean)
+);
+const archivedCatalog = previousCatalog
+  .filter((item) => !activeHosts.has(canonicalHost(item.api)))
+  .map((item) => ({
+    ...item,
+    monitoringState: isDeadLink(item, {
+      now: generatedAt,
+      deadAfterDays: deadLinkAfterDays,
+    })
+      ? "dead"
+      : "rotating",
+    archivedAt: generatedAt,
+  }));
+const catalog = [...activeCatalog, ...archivedCatalog].sort(
+  (a, b) =>
+    Number(b.status === "online") - Number(a.status === "online") ||
+    Number(b.score || 0) - Number(a.score || 0)
+);
 await writeJSON("catalog.json", {
   schemaVersion: 1,
   generatedAt,
   count: catalog.length,
   online: catalog.filter((item) => item.status === "online").length,
+  dead: catalog.filter((item) => item.monitoringState === "dead").length,
+  archived: catalog.filter((item) => item.monitoringState === "rotating").length,
   providers: catalog,
+});
+await writeJSON("archive.json", {
+  generatedAt,
+  count: archivedCatalog.length,
+  dead: archivedCatalog.filter((item) => item.monitoringState === "dead").length,
+  providers: archivedCatalog,
 });
 await writeReadOnlyAPI({
   root,
@@ -568,6 +614,11 @@ await writeReadOnlyAPI({
 });
 
 console.log(`Online ${online.length}/${results.length}; quality ${quality.length}`);
+console.log(
+  `Archive ${archivedCatalog.length}; dead ${
+    catalog.filter((item) => item.monitoringState === "dead").length
+  }`
+);
 console.log(
   `Discovery ${JSON.stringify(discoverySourceStats)}`
 );

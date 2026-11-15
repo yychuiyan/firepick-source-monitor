@@ -1,4 +1,9 @@
 import { buildSystemStatus } from "./status.mjs";
+import {
+  MAX_REALTIME_SOURCES,
+  parseProbeIDs,
+  probeRealtimeSources,
+} from "./realtime-probe.mjs";
 
 const jsonHeaders = {
   "Content-Type": "application/json; charset=utf-8",
@@ -10,9 +15,16 @@ const jsonHeaders = {
 
 export default {
   async fetch(request, env) {
+    const loadJSON = (pathname) => loadJSONData(request, env, pathname);
     return handleAPIRequest(request, {
-      loadJSON: (pathname) => loadJSONData(request, env, pathname),
+      loadJSON,
       loadStatus: () => buildSystemStatus({ env, fetchImpl: fetch }),
+      loadProbe: async (ids) => {
+        const catalog = await loadCatalog(loadJSON);
+        const byID = new Map(catalog.sources.map((source) => [source.id, source]));
+        const sources = ids.map((id) => byID.get(id)).filter(Boolean);
+        return probeRealtimeSources(sources);
+      },
     });
   },
 
@@ -51,7 +63,10 @@ export async function dispatchMonitorWorkflow(fetchImpl = fetch, env = {}) {
   return response.ok;
 }
 
-export async function handleAPIRequest(request, { loadJSON, loadStatus }) {
+export async function handleAPIRequest(
+  request,
+  { loadJSON, loadStatus, loadProbe }
+) {
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: jsonHeaders });
   }
@@ -75,9 +90,35 @@ export async function handleAPIRequest(request, { loadJSON, loadStatus }) {
         "/api/v1/tags",
         "/api/v1/stats",
         "/api/v1/status",
+        `/api/v1/probe?ids=(最多 ${MAX_REALTIME_SOURCES} 个)`,
         "/api/v1/openapi.json",
       ],
     });
+  }
+  if (pathname === "/api/v1/probe") {
+    const ids = parseProbeIDs(url.searchParams.get("ids"));
+    if (!ids.length) {
+      return json(
+        { error: "missing_ids", message: "ids 参数不能为空" },
+        400
+      );
+    }
+    try {
+      if (typeof loadProbe !== "function") {
+        throw new Error("realtime probe provider is unavailable");
+      }
+      return json(await loadProbe(ids), 200, {
+        "Cache-Control": "no-store",
+      });
+    } catch (error) {
+      return json(
+        {
+          error: "probe_unavailable",
+          message: String(error?.message || error),
+        },
+        503
+      );
+    }
   }
   if (
     pathname === "/api/v1/status" ||
@@ -331,10 +372,10 @@ async function loadAssetJSON(request, env, pathname) {
   return await response.json();
 }
 
-function json(value, status = 200) {
+function json(value, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(value), {
     status,
-    headers: jsonHeaders,
+    headers: { ...jsonHeaders, ...extraHeaders },
   });
 }
 

@@ -42,6 +42,7 @@ top-rated.json       目录评分最高的线路
 best.json            供拾萤快速复测的域名去重最佳线路
 stats.json           总量、在线率、延迟与画质统计
 catalog.json         拾萤自有站点目录与持续累计的检测历史
+archive.json         本轮未参与主动检测的轮换或死链历史
 ```
 
 `cms-candidates.json` 只包含线路标识、名称和接口地址，适合直接用于拾萤的
@@ -74,6 +75,8 @@ PLAYBACK_TIMEOUT_MS=5000 \
 PROBE_KEYWORDS='庆余年,三体' \
 QUALITY_PROBE_LIMIT=18 \
 DISCOVERY_LIMIT=240 \
+FRESH_DISCOVERY_RESERVE=40 \
+DEAD_LINK_AFTER_DAYS=30 \
 npm run probe
 ```
 
@@ -116,6 +119,13 @@ SearXNG 只需在 `discovery-sources.json` 的 `searchApi.searxngURL` 中填写�
 公开配置地址或 GitHub 仓库。发现器只提取含有 AppleCMS 接口特征的 URL，
 候选站仍需通过完整检测后才会进入在线池和最佳线路。
 
+每轮检测最多选择 `240` 个候选，但固定种子和当前在线线路始终保留，并优先
+预留最多 `40` 个位置给从未见过的新候选。剩余位置按最近在线时间优先分配给
+可能临时波动的离线站。只有同时满足“至少 3 次检测失败”和“连续 30 天没有
+一次在线成功”的线路才会标记为死链，并退出主动检测；这些线路仍保留在
+`catalog.json` 和 `archive.json` 中，不会丢失历史。新候选通过完整检测后会
+自动补入在线池，失败候选不会挤掉现有正常线路。
+
 ## 自有 API
 
 检测任务会同时生成静态 API 快照和 Cloudflare Worker 数据源。当前可直接读取：
@@ -139,11 +149,17 @@ GET /api/v1/search?q=魔都
 GET /api/v1/best?mode=standard
 GET /api/v1/best?mode=adult
 GET /api/v1/status
+GET /api/v1/probe?ids=zuid_me,wujin_com
 ```
 
 `/api/v1/status` 会检查最近一次线路检测工作流、GitHub Pages、COS 数据与
 COS API 快照，并返回每一步工作流的结论。网页面板的“系统状态”菜单会将该
 结果渲染为端到端链路；某一步失败时可以直接看到失败步骤和耗时。
+
+线路池的“读取快照”只重新读取最近一次检测并发布的数据；“速度测试”会
+按每批最多 20 条连续通过 Worker 请求当前筛选结果的全部采集列表接口，更新
+响应时间与在线状态，并按当前排序重新排列。即时复测不替代每 15 分钟的完整
+检测和画质探测。
 
 本地运行 API：
 

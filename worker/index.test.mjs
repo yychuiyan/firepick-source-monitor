@@ -188,3 +188,40 @@ test("serves the system status endpoint", async () => {
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), payload);
 });
+
+test("serves a realtime probe for requested source ids", async () => {
+  let receivedIDs;
+  const response = await handleAPIRequest(
+    new Request(
+      "https://sources.yychuiyan.com/api/v1/probe?ids=fast,down"
+    ),
+    {
+      loadJSON: async () => ({ sources: [] }),
+      loadProbe: async (ids) => {
+        receivedIDs = ids;
+        return {
+          apiVersion: "v1",
+          requested: ids.length,
+          online: 1,
+          offline: 1,
+          results: ids.map((id) => ({ id })),
+        };
+      },
+    }
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Cache-Control"), "no-store");
+  assert.deepEqual(receivedIDs, ["fast", "down"]);
+  assert.equal((await response.json()).requested, 2);
+});
+
+test("rejects realtime probe requests without ids", async () => {
+  const response = await handleAPIRequest(
+    new Request("https://sources.yychuiyan.com/api/v1/probe"),
+    { loadJSON: async () => ({ sources: [] }) }
+  );
+
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, "missing_ids");
+});

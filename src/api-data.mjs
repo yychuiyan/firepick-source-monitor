@@ -30,6 +30,8 @@ export async function writeReadOnlyAPI({
     lastCheckedAt: source.lastCheckedAt,
     lastOnlineAt: source.lastOnlineAt,
     lastOfflineAt: source.lastOfflineAt,
+    monitoringState: source.monitoringState || null,
+    archivedAt: source.archivedAt || null,
     history: source.history,
     discoverySource: source.discoverySource,
     error: source.status === "online" ? null : source.error,
@@ -135,6 +137,7 @@ export async function writeReadOnlyAPI({
         "/api/v1/tags",
         "/api/v1/stats",
         "/api/v1/status",
+        "/api/v1/probe?ids=(最多20个)",
       ],
     }
   );
@@ -252,6 +255,20 @@ function buildOpenAPI(generatedAt) {
         get: {
           summary: "获取检测、发布、COS、API 与调度链路状态",
           responses: { 200: { description: "端到端运行状态" } },
+        },
+      },
+      "/api/v1/probe": {
+        get: {
+          summary: "即时复测最多 20 个采集站的列表接口",
+          parameters: [
+            {
+              name: "ids",
+              in: "query",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: { 200: { description: "即时列表接口状态与响应时间" } },
         },
       },
     },
