@@ -19,9 +19,9 @@ export default {
 };
 
 export async function dispatchMonitorWorkflow(fetchImpl = fetch, env = {}) {
-  const token = String(env.GITHUB_DISPATCH_TOKEN || "").trim();
+  const token = String(env.WORKFLOW_DISPATCH_TOKEN || "").trim();
   if (!token) {
-    console.error("GITHUB_DISPATCH_TOKEN is not configured");
+    console.error("WORKFLOW_DISPATCH_TOKEN is not configured");
     return false;
   }
   const repository = String(

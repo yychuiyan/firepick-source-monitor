@@ -156,7 +156,7 @@ Worker 同时配置了每 15 分钟一次的 Cron Trigger，作为 GitHub Action
 的 GitHub Token：
 
 ```bash
-npx wrangler secret put GITHUB_DISPATCH_TOKEN
+npx wrangler secret put WORKFLOW_DISPATCH_TOKEN
 npm run api:deploy
 ```
 
@@ -166,7 +166,7 @@ Cron 触发时，Worker 会调用 GitHub `workflow_dispatch` 启动 `monitor.yml
 
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
-- `GITHUB_DISPATCH_TOKEN`
+- `WORKFLOW_DISPATCH_TOKEN`
 
 ## 网页面板
 

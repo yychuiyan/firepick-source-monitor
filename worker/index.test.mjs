@@ -104,7 +104,7 @@ test("dispatches the monitor workflow on the Worker cron", async () => {
     return new Response(null, { status: 204 });
   };
   const ok = await dispatchMonitorWorkflow(fetchImpl, {
-    GITHUB_DISPATCH_TOKEN: "token",
+    WORKFLOW_DISPATCH_TOKEN: "token",
   });
   assert.equal(ok, true);
   assert.equal(
