@@ -84,7 +84,7 @@ jobs:
             coscli cp "$file" \
               "cos://${COS_BUCKET}/firepick-monitor/data/${name}" \
               --acl public-read \
-              --process-log false \
+              --process-log=false \
               --meta 'Content-Type:application/json;charset=utf-8#Cache-Control:no-cache, max-age=0'
           done
       - name: Verify public COS JSON
