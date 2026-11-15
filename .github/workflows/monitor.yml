@@ -60,28 +60,39 @@ jobs:
       - name: Configure coscli
         if: ${{ env.COS_SECRET_ID != '' && env.COS_SECRET_KEY != '' && env.COS_BUCKET != '' && env.COS_REGION != '' }}
         run: |
-          printf '%s\n' \
-            "$HOME/.cos.yaml" \
-            "" \
-            "$COS_SECRET_ID" \
-            "$COS_SECRET_KEY" \
-            "" \
-            "true" \
-            "true" \
-            "true" \
-            "" \
-            "$COS_BUCKET" \
-            "cos.${COS_REGION}.myqcloud.com" \
-            "" \
-            "false" \
-            | coscli config init
+          set -euo pipefail
+          umask 077
+          COS_CONFIG="$RUNNER_TEMP/coscli.yaml"
+          cat > "$COS_CONFIG" <<EOF
+          cos:
+            base:
+              secretid: "${COS_SECRET_ID}"
+              secretkey: "${COS_SECRET_KEY}"
+              sessiontoken: ""
+              protocol: https
+              servicedomain: ""
+              mode: ""
+              cvmrolename: ""
+              closeautoswitchhost: "true"
+              disableencryption: "true"
+              disableautofetchbuckettype: "true"
+              proxy: ""
+            buckets:
+            - name: "${COS_BUCKET}"
+              alias: "${COS_BUCKET}"
+              region: ""
+              endpoint: cos.${COS_REGION}.myqcloud.com
+              ofs: false
+              customized: false
+          EOF
+          echo "COSCLI_CONFIG=$COS_CONFIG" >> "$GITHUB_ENV"
       - name: Sync JSON to COS
         if: ${{ env.COS_SECRET_ID != '' && env.COS_SECRET_KEY != '' && env.COS_BUCKET != '' && env.COS_REGION != '' }}
         run: |
           set -euo pipefail
           for file in public/data/*.json; do
             name="$(basename "$file")"
-            coscli cp "$file" \
+            coscli -c "$COSCLI_CONFIG" cp "$file" \
               "cos://${COS_BUCKET}/firepick-monitor/data/${name}" \
               --acl public-read \
               --process-log=false \
