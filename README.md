@@ -161,6 +161,12 @@ npm run api:deploy
 ```
 
 Cron 触发时，Worker 会调用 GitHub `workflow_dispatch` 启动 `monitor.yml`。
+也可以在 GitHub Actions 中运行 `deploy-worker` 工作流完成部署。运行前需
+添加以下仓库 Secrets：
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `GITHUB_DISPATCH_TOKEN`
 
 ## 网页面板
 
