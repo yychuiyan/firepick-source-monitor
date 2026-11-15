@@ -134,6 +134,7 @@ export async function writeReadOnlyAPI({
         "/api/v1/defunct",
         "/api/v1/tags",
         "/api/v1/stats",
+        "/api/v1/status",
       ],
     }
   );
@@ -246,6 +247,12 @@ function buildOpenAPI(generatedAt) {
       },
       "/api/v1/stats": {
         get: { summary: "获取平台统计", responses: { 200: { description: "统计数据" } } },
+      },
+      "/api/v1/status": {
+        get: {
+          summary: "获取检测、发布、COS、API 与调度链路状态",
+          responses: { 200: { description: "端到端运行状态" } },
+        },
       },
     },
     "x-generated-at": generatedAt,

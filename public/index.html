@@ -100,7 +100,7 @@
       min-height: 70px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-start;
       gap: 24px;
     }
     .brand {
@@ -127,13 +127,14 @@
     }
     .brand strong { display: block; font-size: 16px; letter-spacing: .02em; }
     .brand small { display: block; color: var(--faint); font-size: 9px; letter-spacing: .18em; margin-top: 2px; }
-    .main-nav { display: flex; align-items: center; gap: 4px; }
+    .main-nav { display: flex; align-items: center; gap: 4px; margin-left: 10px; }
     .main-nav a {
       padding: 8px 12px;
       border-radius: 9px;
       color: var(--muted);
       font-size: 13px;
       text-decoration: none;
+      white-space: nowrap;
       transition: color .18s ease, background .18s ease;
     }
     .main-nav a:hover { color: var(--text); background: var(--surface-raised); }
@@ -141,7 +142,7 @@
       color: var(--amber-bright);
       background: var(--amber-soft);
     }
-    .top-actions { display: flex; align-items: center; gap: 12px; flex: none; }
+    .top-actions { display: flex; align-items: center; gap: 12px; flex: none; margin-left: auto; }
     .data-time { margin-right: 2px; color: var(--muted); font-size: 11px; line-height: 1.35; text-align: right; }
     .data-time strong { display: block; color: var(--text); font-size: 12px; font-weight: 600; }
     .icon-button, .text-button {
@@ -328,6 +329,7 @@
       cursor: pointer;
     }
     .action.primary { border-color: var(--amber); background: var(--amber); color: #181407; }
+    .hero .action.primary { color: #fff; }
     .action svg { width: 15px; height: 15px; }
     .action:hover { filter: brightness(1.06); }
     .health-panel {
@@ -873,6 +875,223 @@
     .data-link:hover { border-color: var(--line-strong); color: var(--text); }
     .data-link svg { width: 12px; height: 12px; }
 
+    .status-console { overflow: hidden; }
+    .system-summary {
+      --system-tone: var(--green);
+      --system-soft: var(--green-soft);
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      overflow: hidden;
+      padding: 21px 22px;
+      border-bottom: 1px solid var(--line);
+    }
+    .system-summary::after {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 3px;
+      background: var(--system-tone);
+    }
+    .system-summary[data-state="degraded"] {
+      --system-tone: var(--amber);
+      --system-soft: var(--amber-soft);
+    }
+    .system-summary[data-state="failed"] {
+      --system-tone: var(--danger);
+      --system-soft: var(--danger-soft);
+    }
+    .system-summary-copy { min-width: 0; }
+    .system-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--system-tone);
+      font-family: ui-monospace, monospace;
+      font-size: 9px;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .system-eyebrow::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--system-tone);
+      box-shadow: 0 0 0 5px var(--system-soft);
+    }
+    .system-summary h3 {
+      margin: 12px 0 6px;
+      font-family: "Songti SC", "STSong", "Noto Serif SC", serif;
+      font-size: clamp(21px, 2.4vw, 29px);
+      line-height: 1.2;
+      letter-spacing: -.025em;
+    }
+    .system-summary p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.65; }
+    .system-scoreboard {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(78px, auto));
+      align-self: stretch;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--bg-soft);
+    }
+    .system-score { display: grid; align-content: center; min-width: 0; padding: 13px 15px; border-right: 1px solid var(--line); }
+    .system-score:last-child { border-right: 0; }
+    .system-score strong {
+      overflow: hidden;
+      color: var(--system-tone);
+      font-family: "DIN Alternate", ui-monospace, monospace;
+      font-size: 18px;
+      line-height: 1.1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .system-score span { margin-top: 5px; color: var(--faint); font-size: 8px; letter-spacing: .05em; }
+    .status-chain {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 0;
+      padding: 19px 18px 17px;
+      background: color-mix(in srgb, var(--surface) 92%, var(--bg-soft));
+    }
+    .status-node {
+      --node-tone: var(--faint);
+      position: relative;
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr);
+      column-gap: 9px;
+      min-width: 0;
+      padding-right: 18px;
+    }
+    .status-node:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 10px;
+      left: 22px;
+      right: -1px;
+      height: 1px;
+      background: var(--line-strong);
+    }
+    .status-node[data-state="success"] { --node-tone: var(--green); }
+    .status-node[data-state="warning"] { --node-tone: var(--amber); }
+    .status-node[data-state="failure"] { --node-tone: var(--danger); }
+    .status-node[data-state="running"] { --node-tone: var(--cyan); }
+    .node-signal {
+      position: relative;
+      z-index: 1;
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border: 1px solid color-mix(in srgb, var(--node-tone) 46%, var(--line));
+      border-radius: 50%;
+      background: var(--surface);
+    }
+    .node-signal::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--node-tone);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--node-tone) 12%, transparent);
+    }
+    .status-node[data-state="running"] .node-signal::before { animation: pulse 1.8s ease-out infinite; }
+    .node-content { min-width: 0; padding-top: 1px; }
+    .node-order { color: var(--faint); font-family: ui-monospace, monospace; font-size: 8px; letter-spacing: .09em; }
+    .node-content h3 { overflow: hidden; margin: 5px 0 4px; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .node-content h3 a { color: inherit; text-decoration: none; }
+    .node-content h3 a:hover { color: var(--amber); }
+    .node-state { display: block; color: var(--node-tone); font-size: 10px; }
+    .node-detail { min-height: 30px; margin: 6px 0 0; color: var(--faint); font-size: 8px; line-height: 1.55; }
+    .node-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 8px;
+      padding-top: 7px;
+      border-top: 1px solid var(--line);
+      color: var(--faint);
+      font-family: ui-monospace, monospace;
+      font-size: 8px;
+    }
+    .workflow-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+    .workflow-card { min-width: 0; padding: 17px; }
+    .workflow-card[data-state="success"] { --workflow-tone: var(--green); }
+    .workflow-card[data-state="warning"] { --workflow-tone: var(--amber); }
+    .workflow-card[data-state="failure"] { --workflow-tone: var(--danger); }
+    .workflow-card[data-state="running"] { --workflow-tone: var(--cyan); }
+    .workflow-card[data-state="unknown"] { --workflow-tone: var(--faint); }
+    .workflow-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .workflow-head h3 { margin: 0 0 5px; font-size: 13px; }
+    .workflow-head p { margin: 0; color: var(--faint); font-size: 9px; line-height: 1.55; }
+    .workflow-badge {
+      flex: none;
+      padding: 4px 7px;
+      border-radius: 6px;
+      background: color-mix(in srgb, var(--workflow-tone) 11%, transparent);
+      color: var(--workflow-tone);
+      font-size: 9px;
+      font-weight: 600;
+    }
+    .workflow-run { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; color: var(--faint); font-family: ui-monospace, monospace; font-size: 8px; }
+    .workflow-run a { color: var(--muted); text-decoration: none; }
+    .workflow-run a:hover { color: var(--amber); }
+    .workflow-steps { display: grid; gap: 1px; overflow: hidden; margin-top: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--line); }
+    .workflow-step {
+      --step-tone: var(--faint);
+      display: grid;
+      grid-template-columns: 8px minmax(0, 1fr) auto auto;
+      gap: 8px;
+      align-items: center;
+      min-height: 32px;
+      padding: 7px 9px;
+      background: var(--surface-raised);
+    }
+    .workflow-step[data-state="success"] { --step-tone: var(--green); }
+    .workflow-step[data-state="warning"] { --step-tone: var(--amber); }
+    .workflow-step[data-state="failure"] { --step-tone: var(--danger); background: var(--danger-soft); }
+    .workflow-step[data-state="running"] { --step-tone: var(--cyan); }
+    .step-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--step-tone); }
+    .step-name { overflow: hidden; color: var(--text); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+    .step-duration { color: var(--faint); font-family: ui-monospace, monospace; font-size: 8px; white-space: nowrap; }
+    .step-result { color: var(--step-tone); font-size: 8px; white-space: nowrap; }
+    .workflow-error { margin: 11px 0 0; padding: 9px 10px; border-radius: 8px; background: var(--danger-soft); color: var(--danger); font-size: 9px; line-height: 1.55; }
+    .status-lower-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(270px, .65fr); gap: 12px; margin-top: 12px; }
+    .snapshot-panel, .status-guide { padding: 17px; }
+    .status-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 13px; }
+    .status-section-head h3 { margin: 0 0 4px; font-size: 13px; }
+    .status-section-head p { margin: 0; color: var(--faint); font-size: 9px; line-height: 1.55; }
+    .consistency-badge { flex: none; padding: 4px 7px; border-radius: 6px; color: var(--green); background: var(--green-soft); font-size: 8px; }
+    .consistency-badge[data-state="warning"] { color: var(--amber); background: var(--amber-soft); }
+    .consistency-badge[data-state="failure"] { color: var(--danger); background: var(--danger-soft); }
+    .snapshot-list { display: grid; gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--line); }
+    .snapshot-row {
+      display: grid;
+      grid-template-columns: 10px minmax(90px, .6fr) minmax(150px, 1fr) auto;
+      gap: 9px;
+      align-items: center;
+      padding: 9px 10px;
+      background: var(--surface-raised);
+    }
+    .snapshot-row[data-state="success"] { --snapshot-tone: var(--green); }
+    .snapshot-row[data-state="failure"] { --snapshot-tone: var(--danger); }
+    .snapshot-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--snapshot-tone, var(--faint)); }
+    .snapshot-label { color: var(--text); font-size: 9px; }
+    .snapshot-time { overflow: hidden; color: var(--muted); font-family: ui-monospace, monospace; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+    .snapshot-latency { color: var(--faint); font-family: ui-monospace, monospace; font-size: 8px; white-space: nowrap; }
+    .snapshot-row a { color: var(--muted); text-decoration: none; }
+    .snapshot-row a:hover { color: var(--amber); }
+    .status-guide h3 { margin: 0 0 8px; font-size: 13px; }
+    .status-guide p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.7; }
+    .status-guide ol { display: grid; gap: 7px; margin: 11px 0 0; padding: 0; list-style: none; counter-reset: status-guide; }
+    .status-guide li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 7px; color: var(--faint); font-size: 9px; line-height: 1.55; counter-increment: status-guide; }
+    .status-guide li::before { content: counter(status-guide, decimal-leading-zero); color: var(--amber); font-family: ui-monospace, monospace; }
+    .status-guide a { display: inline-flex; margin-top: 12px; color: var(--amber); font-size: 9px; text-decoration: none; }
+    .status-guide a:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .status-loading { min-height: 170px; display: grid; place-items: center; color: var(--muted); font-size: 11px; text-align: center; }
     .analytics-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
     .insight-summary {
       display: grid;
@@ -1076,6 +1295,28 @@
       .search-field { grid-column: auto; }
       .view-switch { justify-self: end; }
     }
+    @media (max-width: 1060px) {
+      .topbar-inner { flex-wrap: wrap; padding: 9px 0 10px; }
+      .main-nav {
+        order: 3;
+        width: 100%;
+        margin-left: 0;
+        overflow-x: auto;
+        padding-bottom: 1px;
+        scrollbar-width: none;
+      }
+      .main-nav::-webkit-scrollbar { display: none; }
+      .main-nav a {
+        flex: 1 0 auto;
+        padding: 7px 11px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        text-align: center;
+      }
+      .main-nav a.active { border-color: color-mix(in srgb, var(--amber) 48%, var(--line)); }
+      .top-actions { order: 2; margin-left: auto; }
+      .section { scroll-margin-top: 138px; }
+    }
     @media (max-width: 900px) {
       .topbar-inner { flex-wrap: wrap; padding: 9px 0 10px; }
       .main-nav {
@@ -1084,6 +1325,7 @@
         display: flex;
         overflow-x: auto;
         padding-bottom: 1px;
+        margin-left: 0;
         scrollbar-width: none;
       }
       .main-nav::-webkit-scrollbar { display: none; }
@@ -1107,6 +1349,19 @@
       .side-stack { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .side-panel.quick-data { grid-column: 1 / -1; }
       .data-links { grid-template-columns: repeat(4, 1fr); }
+      .system-summary { grid-template-columns: 1fr; }
+      .system-scoreboard { justify-self: stretch; grid-template-columns: repeat(3, 1fr); }
+      .status-chain { grid-template-columns: 1fr; gap: 7px; }
+      .status-node { padding: 0 0 9px; }
+      .status-node:not(:last-child)::after {
+        top: 22px;
+        left: 10px;
+        right: auto;
+        width: 1px;
+        height: calc(100% - 11px);
+      }
+      .node-detail { min-height: 0; }
+      .workflow-grid, .status-lower-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 720px) {
       .shell { width: min(100% - 28px, 1380px); }
@@ -1240,6 +1495,14 @@
       .dialog-inner { padding: 18px; }
       .detail-grid { grid-template-columns: 1fr; }
       .dialog-title h2 { font-size: 20px; }
+      .system-summary { padding: 18px 16px; }
+      .system-scoreboard { grid-template-columns: repeat(2, 1fr); }
+      .system-score:nth-child(2) { border-right: 0; }
+      .system-score:last-child { grid-column: 1 / -1; border-top: 1px solid var(--line); }
+      .snapshot-row { grid-template-columns: 8px minmax(80px, .7fr) minmax(0, 1fr); }
+      .snapshot-latency { display: none; }
+      .workflow-step { grid-template-columns: 8px minmax(0, 1fr) auto; }
+      .step-duration { display: none; }
     }
     @media (max-width: 620px) {
       .hero {
@@ -1274,6 +1537,7 @@
         <a href="#lines">线路池</a>
         <a href="#insights">运行分布</a>
         <a href="#method">检测口径</a>
+        <a href="#status">系统状态</a>
       </nav>
       <div class="top-actions">
         <div class="data-time"><strong id="topUpdated">读取中</strong><span id="topFreshness">等待检测数据</span></div>
@@ -1506,6 +1770,62 @@ tags: 稳定, 高清</pre>
       </div>
     </section>
 
+    <section id="status" class="section view" aria-labelledby="statusTitle" hidden>
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">END-TO-END HEALTH</div>
+          <h2 id="statusTitle" class="section-title">系统状态</h2>
+        </div>
+        <p>从线路检测到页面、COS 和自有 API 逐段检查。失败时会保留最近一次工作流及具体失败步骤。</p>
+      </div>
+
+      <div class="status-console panel">
+        <div id="statusSummary" class="system-summary" data-state="loading">
+          <div class="system-summary-copy">
+            <div class="system-eyebrow">PIPELINE SIGNAL · 链路状态</div>
+            <h3 id="statusLabel">正在检查整条链路</h3>
+            <p id="statusDetail">读取检测、发布和数据接口状态，请稍候。</p>
+          </div>
+          <div class="system-scoreboard" aria-label="状态汇总">
+            <div class="system-score"><strong id="statusSuccessCount">—</strong><span>节点正常</span></div>
+            <div class="system-score"><strong id="statusAttentionCount">—</strong><span>需要关注</span></div>
+            <div class="system-score"><strong id="statusCheckedAt">—</strong><span>检查时间</span></div>
+          </div>
+        </div>
+
+        <div id="statusChain" class="status-chain" aria-label="端到端节点状态">
+          <div class="status-loading">正在检查各节点…</div>
+        </div>
+      </div>
+
+      <div id="workflowGrid" class="workflow-grid">
+        <article class="workflow-card panel"><div class="status-loading">正在读取最近一次线路检测运行…</div></article>
+        <article class="workflow-card panel"><div class="status-loading">正在读取最近一次 Worker 部署…</div></article>
+      </div>
+
+      <div class="status-lower-grid">
+        <section class="snapshot-panel panel">
+          <div class="status-section-head">
+            <div><h3>快照一致性</h3><p>消费者读取的三份数据必须来自同一轮检测。</p></div>
+            <span id="consistencyBadge" class="consistency-badge" data-state="loading">检查中</span>
+          </div>
+          <div id="snapshotList" class="snapshot-list">
+            <div class="status-loading">等待数据快照…</div>
+          </div>
+        </section>
+        <aside class="status-guide panel">
+          <h3>出现异常时怎么看</h3>
+          <p>先看顶部哪个节点变红，再对照右侧工作流的失败步骤；失败步骤会保留名称、状态和耗时。</p>
+          <ol>
+            <li>线路检测失败：先看探测步骤，不一定是最终页面问题。</li>
+            <li>页面或 COS 失败：检查对应发布步骤和回读验证。</li>
+            <li>数据时间不一致：说明某一条分发链路尚未完成。</li>
+          </ol>
+          <a href="https://github.com/yychuiyan/firepick-source-monitor/actions" target="_blank" rel="noopener noreferrer">打开 GitHub Actions 运行记录 →</a>
+        </aside>
+      </div>
+    </section>
+
     <section id="method" class="section view" aria-labelledby="methodTitle" hidden>
       <div class="section-head">
         <div>
@@ -1592,9 +1912,13 @@ tags: 稳定, 高清</pre>
     let toastTimer = null;
     let dataLoadPromise = null;
     let lastDataLoadAt = 0;
+    let systemStatus = null;
+    let statusLoadPromise = null;
+    let lastStatusLoadAt = 0;
     const PAGE_META = {
       lines: { label: "线路池", title: "线路池 · 拾萤线路检测" },
       insights: { label: "运行分布", title: "运行分布 · 拾萤线路检测" },
+      status: { label: "系统状态", title: "系统状态 · 拾萤线路检测" },
       method: { label: "检测口径", title: "检测口径 · 拾萤线路检测" }
     };
 
@@ -2082,6 +2406,364 @@ tags: 稳定, 高清</pre>
       });
     }
 
+    const STATUS_LABELS = {
+      success: "正常",
+      warning: "需关注",
+      failure: "失败",
+      running: "进行中",
+      unknown: "未知"
+    };
+
+    function compactDate(value) {
+      if (!value) return "—";
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return value;
+      return parsed.toLocaleString("zh-CN", {
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      });
+    }
+
+    function durationLabel(value) {
+      if (!Number.isFinite(Number(value))) return "—";
+      const ms = Number(value);
+      if (ms < 1000) return `${ms}ms`;
+      if (ms < 60000) return `${(ms / 1000).toFixed(ms < 10000 ? 1 : 0)}s`;
+      const minutes = Math.floor(ms / 60000);
+      const seconds = Math.round((ms % 60000) / 1000);
+      return `${minutes}m ${seconds}s`;
+    }
+
+    function workflowEventLabel(event) {
+      return {
+        push: "代码推送",
+        workflow_dispatch: "定时或手动",
+        schedule: "定时计划"
+      }[event] || event || "未记录触发方式";
+    }
+
+    function workflowStepLabel(name) {
+      const labels = {
+        "Set up job": "准备运行环境",
+        "Run actions/checkout@v4": "拉取仓库代码",
+        "Run actions/setup-node@v4": "配置 Node.js",
+        "Validate monitor and API": "校验监控与 API",
+        "Probe CMS sources": "检测采集站",
+        "Run actions/upload-pages-artifact@v3": "打包页面数据",
+        "Deploy GitHub Pages": "发布 GitHub Pages",
+        "Install coscli": "安装 COS 工具",
+        "Configure coscli": "配置 COS 连接",
+        "Sync JSON to COS": "同步 JSON 到 COS",
+        "Verify public COS JSON": "回读验证 COS 数据",
+        "Post Run actions/setup-node@v4": "清理 Node.js 环境",
+        "Post Run actions/checkout@v4": "清理仓库凭据",
+        "Complete job": "完成运行",
+        "Validate Worker": "校验 Worker",
+        "Generate bundled API fallback": "生成内置 API 兜底",
+        "Check deployment secrets": "检查部署密钥",
+        "Configure Worker secret": "配置 Worker 密钥",
+        "Deploy Worker and cron trigger": "部署 Worker 与定时任务"
+      };
+      return labels[name] || name;
+    }
+
+    function stepState(step) {
+      if (step.conclusion === "failure" || step.conclusion === "timed_out") return "failure";
+      if (step.conclusion === "cancelled") return "warning";
+      if (step.conclusion === "skipped" || step.conclusion === "neutral") return "unknown";
+      if (step.status === "in_progress" || step.status === "queued") return "running";
+      if (step.conclusion === "success") return "success";
+      return "unknown";
+    }
+
+    function stepStateLabel(step) {
+      if (step.conclusion === "skipped") return "跳过";
+      if (step.conclusion === "cancelled") return "取消";
+      if (step.conclusion === "timed_out") return "超时";
+      return STATUS_LABELS[stepState(step)] || "未知";
+    }
+
+    function renderStatusNode(check, index) {
+      const node = make("article", "status-node");
+      node.dataset.state = STATUS_LABELS[check.status] ? check.status : "unknown";
+      const signal = make("span", "node-signal");
+      signal.setAttribute("aria-hidden", "true");
+      const content = make("div", "node-content");
+      content.append(make("span", "node-order", `${String(index + 1).padStart(2, "0")} / ${check.id.toUpperCase()}`));
+      const title = make("h3");
+      if (check.href) {
+        const link = make("a", "", check.title);
+        link.href = check.href;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        title.append(link);
+      } else {
+        title.textContent = check.title;
+      }
+      const state = make("strong", "node-state", STATUS_LABELS[check.status] || "未知");
+      const detail = make("p", "node-detail", check.detail || "暂无详情");
+      detail.title = check.detail || "";
+      const meta = make("div", "node-meta");
+      const latency = Number.isFinite(Number(check.latencyMs)) && Number(check.latencyMs) > 0
+        ? `${Math.round(Number(check.latencyMs))}ms`
+        : "实时检查";
+      meta.append(
+        make("span", "", latency),
+        make("span", "", check.checkedAt ? compactDate(check.checkedAt) : "刚刚")
+      );
+      content.append(title, state, detail, meta);
+      node.append(signal, content);
+      return node;
+    }
+
+    function renderWorkflowCard(workflow) {
+      const card = make("article", "workflow-card panel");
+      card.dataset.state = STATUS_LABELS[workflow.status] ? workflow.status : "unknown";
+      const head = make("div", "workflow-head");
+      const copy = make("div");
+      copy.append(
+        make("h3", "", workflow.name),
+        make(
+          "p",
+          "",
+          workflow.runNumber
+            ? `运行 #${workflow.runNumber} · ${workflowEventLabel(workflow.event)}`
+            : workflow.error || "尚未读取到运行记录"
+        )
+      );
+      head.append(copy, make("span", "workflow-badge", STATUS_LABELS[workflow.status] || "未知"));
+      card.append(head);
+
+      if (workflow.runNumber) {
+        const run = make("div", "workflow-run");
+        run.append(
+          make("span", "", workflow.createdAt ? compactDate(workflow.createdAt) : "时间未知"),
+          make("span", "", `耗时 ${durationLabel(workflow.durationMs)}`)
+        );
+        if (workflow.url) {
+          const link = make("a", "", "查看运行 →");
+          link.href = workflow.url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          run.append(link);
+        }
+        card.append(run);
+      }
+
+      const steps = make("div", "workflow-steps");
+      if (Array.isArray(workflow.steps) && workflow.steps.length) {
+        workflow.steps.forEach((step) => {
+          const state = stepState(step);
+          const row = make("div", "workflow-step");
+          row.dataset.state = state;
+          row.append(
+            make("span", "step-dot"),
+            make("span", "step-name", workflowStepLabel(step.name)),
+            make("span", "step-duration", durationLabel(step.durationMs)),
+            make("span", "step-result", stepStateLabel(step))
+          );
+          row.querySelector(".step-dot").setAttribute("aria-hidden", "true");
+          steps.append(row);
+        });
+      } else {
+        const row = make("div", "workflow-step");
+        row.dataset.state = workflow.status === "failure" ? "failure" : "unknown";
+        row.append(
+          make("span", "step-dot"),
+          make("span", "step-name", "未返回步骤详情"),
+          make("span", "step-duration", "—"),
+          make("span", "step-result", STATUS_LABELS[workflow.status] || "未知")
+        );
+        steps.append(row);
+      }
+      card.append(steps);
+      if (workflow.error && workflow.steps?.length) {
+        card.append(make("p", "workflow-error", workflow.error));
+      }
+      return card;
+    }
+
+    function renderSnapshotList(data) {
+      const list = $("#snapshotList");
+      list.replaceChildren();
+      const snapshots = Array.isArray(data.snapshots) ? data.snapshots : [];
+      if (!snapshots.length) {
+        list.append(make("div", "status-loading", "没有读到数据快照"));
+        return;
+      }
+      snapshots.forEach((snapshot) => {
+        const row = make("div", "snapshot-row");
+        row.dataset.state = snapshot.status === "success" ? "success" : "failure";
+        const dot = make("span", "snapshot-dot");
+        dot.setAttribute("aria-hidden", "true");
+        const label = make("a", "snapshot-label", snapshot.label);
+        label.href = snapshot.url;
+        label.target = "_blank";
+        label.rel = "noopener noreferrer";
+        row.append(
+          dot,
+          label,
+          make("span", "snapshot-time", snapshot.generatedAt ? compactDate(snapshot.generatedAt) : snapshot.error || "未生成"),
+          make("span", "snapshot-latency", durationLabel(snapshot.latencyMs))
+        );
+        list.append(row);
+      });
+    }
+
+    function renderSystemStatus(data) {
+      systemStatus = data;
+      const summary = $("#statusSummary");
+      summary.dataset.state = data.overall || "failed";
+      $("#statusLabel").textContent = data.summary?.label || "无法判断链路状态";
+      $("#statusDetail").textContent = data.summary?.detail || "状态接口没有返回说明。";
+      const checks = Array.isArray(data.checks) ? data.checks : [];
+      $("#statusSuccessCount").textContent = checks.filter((item) => item.status === "success").length;
+      $("#statusAttentionCount").textContent = checks.filter((item) => item.status !== "success").length;
+      $("#statusCheckedAt").textContent = data.checkedAt ? compactDate(data.checkedAt) : "—";
+
+      const chain = $("#statusChain");
+      chain.replaceChildren();
+      if (!checks.length) {
+        chain.append(make("div", "status-loading", "状态接口没有返回节点信息"));
+      } else {
+        checks.forEach((check, index) => chain.append(renderStatusNode(check, index)));
+      }
+
+      const workflowGrid = $("#workflowGrid");
+      workflowGrid.replaceChildren();
+      const workflows = Array.isArray(data.workflows) ? data.workflows : [];
+      if (!workflows.length) {
+        workflowGrid.append(make("article", "workflow-card panel", "没有读到工作流记录"));
+      } else {
+        workflows.forEach((workflow) => workflowGrid.append(renderWorkflowCard(workflow)));
+      }
+
+      const consistency = data.consistency || { status: "failure", detail: "未执行一致性检查" };
+      const badge = $("#consistencyBadge");
+      badge.dataset.state = consistency.status;
+      badge.textContent = STATUS_LABELS[consistency.status] || "未知";
+      badge.title = consistency.detail || "";
+      renderSnapshotList(data);
+    }
+
+    function renderStatusUnavailable(error) {
+      const generatedAt = state.data?.generatedAt;
+      const ageMs = generatedAt ? Date.now() - new Date(generatedAt).getTime() : null;
+      const fresh = Number.isFinite(ageMs) && ageMs <= 45 * 60 * 1000;
+      const pageState = state.data ? "success" : "unknown";
+      const fallback = {
+        overall: state.data ? "degraded" : "failed",
+        checkedAt: new Date().toISOString(),
+        summary: {
+          label: "状态接口暂时不可用",
+          detail: `已显示当前页面的本地判断：${error.message || error}`
+        },
+        checks: [
+          {
+            id: "monitor",
+            title: "线路检测",
+            status: "unknown",
+            detail: "无法读取 Worker 状态接口，请打开 GitHub Actions 查看最近运行。",
+            checkedAt: new Date().toISOString()
+          },
+          {
+            id: "pages",
+            title: "页面发布",
+            status: pageState,
+            detail: state.data ? "当前页面已加载，并读到了线路数据。" : "当前页面没有读到线路数据。",
+            checkedAt: new Date().toISOString()
+          },
+          {
+            id: "cos",
+            title: "COS 镜像",
+            status: "unknown",
+            detail: "状态接口不可用，无法完成 COS 双向检查。",
+            checkedAt: new Date().toISOString()
+          },
+          {
+            id: "api",
+            title: "自有 API",
+            status: "failure",
+            detail: `状态接口请求失败：${error.message || error}`,
+            checkedAt: new Date().toISOString()
+          },
+          {
+            id: "freshness",
+            title: "数据新鲜度",
+            status: fresh ? "success" : generatedAt ? "warning" : "unknown",
+            detail: generatedAt ? `当前页面快照生成于 ${compactDate(generatedAt)}` : "没有读到当前页面快照时间。",
+            checkedAt: new Date().toISOString()
+          }
+        ],
+        workflows: [
+          {
+            id: "monitor",
+            name: "线路检测与发布",
+            status: "unknown",
+            error: "状态接口不可用，请打开 GitHub Actions 查看失败步骤",
+            steps: []
+          },
+          {
+            id: "worker",
+            name: "Worker 部署",
+            status: "unknown",
+            error: "状态接口不可用，请打开 GitHub Actions 查看失败步骤",
+            steps: []
+          }
+        ],
+        snapshots: generatedAt
+          ? [{
+              id: "current-page",
+              label: "当前页面",
+              status: "success",
+              generatedAt,
+              latencyMs: null,
+              url: new URL("./data/stats.json", location.href).href
+            }]
+          : [],
+        consistency: {
+          status: "failure",
+          detail: "状态接口不可用，无法比较多个数据入口。"
+        }
+      };
+      renderSystemStatus(fallback);
+    }
+
+    async function loadSystemStatus({ announce = false, force = false } = {}) {
+      if (statusLoadPromise) return statusLoadPromise;
+      const now = Date.now();
+      if (!force && now - lastStatusLoadAt < 30000) return;
+      const refresh = $("#refresh");
+      refresh.disabled = true;
+      refresh.classList.add("refreshing");
+      statusLoadPromise = (async () => {
+        try {
+          const response = await fetch(`./api/v1/status?ts=${Date.now()}`, {
+            cache: "no-store",
+            headers: { Accept: "application/json" }
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const payload = await response.json();
+          if (!Array.isArray(payload.checks)) throw new Error("状态接口返回格式不正确");
+          lastStatusLoadAt = Date.now();
+          renderSystemStatus(payload);
+          if (announce) showToast("已重新检查系统状态");
+        } catch (error) {
+          renderStatusUnavailable(error);
+          if (announce) showToast("状态检查失败，已显示本地判断");
+        } finally {
+          refresh.disabled = false;
+          refresh.classList.remove("refreshing");
+          statusLoadPromise = null;
+        }
+      })();
+      return statusLoadPromise;
+    }
+
     function fillTagFilter(data) {
       const counts = new Map();
       data.results.forEach((item) => (item.tags || []).forEach((tag) => counts.set(tag, (counts.get(tag) || 0) + 1)));
@@ -2193,6 +2875,7 @@ tags: 稳定, 高清</pre>
       $("#overviewView").hidden = selected !== "lines";
       $("#lines").hidden = selected !== "lines";
       $("#insights").hidden = selected !== "insights";
+      $("#status").hidden = selected !== "status";
       $("#method").hidden = selected !== "method";
       document.querySelectorAll(".main-nav a").forEach((link) => {
         const active = link.hash === `#${selected}`;
@@ -2202,6 +2885,7 @@ tags: 稳定, 高清</pre>
       });
       document.title = PAGE_META[selected].title;
       window.scrollTo({ top: 0, behavior: "auto" });
+      if (selected === "status") loadSystemStatus();
     }
 
     async function loadData({ announce = true, force = false } = {}) {
@@ -2237,6 +2921,7 @@ tags: 稳定, 高清</pre>
     function autoRefreshData() {
       if (document.visibilityState === "visible") {
         loadData({ announce: false });
+        if (pageFromHash() === "status") loadSystemStatus();
       }
     }
 
@@ -2267,7 +2952,13 @@ tags: 稳定, 高清</pre>
         submitToggle.focus();
       }
     });
-    $("#refresh").addEventListener("click", () => loadData({ announce: true, force: true }));
+    $("#refresh").addEventListener("click", () => {
+      if (pageFromHash() === "status") {
+        loadSystemStatus({ announce: true, force: true });
+      } else {
+        loadData({ announce: true, force: true });
+      }
+    });
     $("#search").addEventListener("input", (event) => {
       state.query = event.target.value.trim();
       state.page = 1;

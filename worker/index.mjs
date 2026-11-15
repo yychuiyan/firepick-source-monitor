@@ -1,3 +1,5 @@
+import { buildSystemStatus } from "./status.mjs";
+
 const jsonHeaders = {
   "Content-Type": "application/json; charset=utf-8",
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +12,7 @@ export default {
   async fetch(request, env) {
     return handleAPIRequest(request, {
       loadJSON: (pathname) => loadJSONData(request, env, pathname),
+      loadStatus: () => buildSystemStatus({ env, fetchImpl: fetch }),
     });
   },
 
@@ -48,7 +51,7 @@ export async function dispatchMonitorWorkflow(fetchImpl = fetch, env = {}) {
   return response.ok;
 }
 
-export async function handleAPIRequest(request, { loadJSON }) {
+export async function handleAPIRequest(request, { loadJSON, loadStatus }) {
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: jsonHeaders });
   }
@@ -71,9 +74,29 @@ export async function handleAPIRequest(request, { loadJSON }) {
         "/api/v1/defunct",
         "/api/v1/tags",
         "/api/v1/stats",
+        "/api/v1/status",
         "/api/v1/openapi.json",
       ],
     });
+  }
+  if (
+    pathname === "/api/v1/status" ||
+    pathname === "/api/v1/status.json"
+  ) {
+    try {
+      if (typeof loadStatus !== "function") {
+        throw new Error("status provider is unavailable");
+      }
+      return json(await loadStatus());
+    } catch (error) {
+      return json(
+        {
+          error: "status_unavailable",
+          message: String(error?.message || error),
+        },
+        503
+      );
+    }
   }
   if (/^\/api\/v1\/.+\.json$/i.test(pathname)) {
     try {

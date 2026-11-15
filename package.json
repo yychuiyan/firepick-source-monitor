@@ -8,7 +8,7 @@
     "probe": "node src/probe.mjs",
     "audit:dead": "node scripts/audit-offline.mjs",
     "sync:firepick": "node scripts/sync-firepick-candidates.mjs",
-    "check": "node --check src/probe.mjs && node --check src/catalog.mjs && node --check src/discovery.mjs && node --check src/discovery-channels.mjs && node --check src/api-data.mjs && node --check worker/index.mjs && node --check scripts/audit-offline.mjs && node --check scripts/sync-firepick-candidates.mjs",
+    "check": "node --check src/probe.mjs && node --check src/catalog.mjs && node --check src/discovery.mjs && node --check src/discovery-channels.mjs && node --check src/api-data.mjs && node --check worker/index.mjs && node --check worker/status.mjs && node --check scripts/audit-offline.mjs && node --check scripts/sync-firepick-candidates.mjs",
     "test": "node --test src/*.test.mjs worker/*.test.mjs",
     "api:dev": "npx wrangler dev",
     "api:deploy": "npx wrangler deploy"

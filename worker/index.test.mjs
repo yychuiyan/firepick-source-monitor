@@ -168,3 +168,23 @@ test("falls back to bundled API data when COS is unavailable", async () => {
 
   assert.deepEqual(result, payload);
 });
+
+test("serves the system status endpoint", async () => {
+  const payload = {
+    apiVersion: "v1",
+    overall: "healthy",
+    checks: [{ id: "monitor", status: "success" }],
+  };
+  const response = await handleAPIRequest(
+    new Request("https://sources.yychuiyan.com/api/v1/status"),
+    {
+      loadJSON: async () => {
+        throw new Error("should not read a static JSON file");
+      },
+      loadStatus: async () => payload,
+    }
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), payload);
+});

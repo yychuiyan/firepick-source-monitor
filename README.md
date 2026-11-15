@@ -138,7 +138,12 @@ GET /api/v1/sources/{id}
 GET /api/v1/search?q=魔都
 GET /api/v1/best?mode=standard
 GET /api/v1/best?mode=adult
+GET /api/v1/status
 ```
+
+`/api/v1/status` 会检查最近一次线路检测工作流、GitHub Pages、COS 数据与
+COS API 快照，并返回每一步工作流的结论。网页面板的“系统状态”菜单会将该
+结果渲染为端到端链路；某一步失败时可以直接看到失败步骤和耗时。
 
 本地运行 API：
 
