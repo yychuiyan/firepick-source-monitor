@@ -193,10 +193,8 @@ Cron 触发时，Worker 会调用 GitHub `workflow_dispatch` 启动 `monitor.yml
 - `CLOUDFLARE_ACCOUNT_ID`
 - `WORKFLOW_DISPATCH_TOKEN`
 
-`deploy-worker` 部署完成后会调用受保护的
-`POST /api/v1/health/dispatch`，实际验证 Worker、Token 和 GitHub
-`workflow_dispatch` 整条触发链是否可用。该请求使用
-`Authorization: Bearer <WORKFLOW_DISPATCH_TOKEN>`。
+`deploy-worker` 部署完成后会直接调用 GitHub `workflow_dispatch` API，
+验证 Token 是否具备 `Actions: Read and write`，并立即启动一次检测。
 
 ## 网页面板
 

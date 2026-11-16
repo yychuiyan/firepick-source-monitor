@@ -8,8 +8,8 @@ import {
 const jsonHeaders = {
   "Content-Type": "application/json; charset=utf-8",
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Authorization, Content-Type",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
   "Cache-Control": "public, max-age=60",
 };
 
@@ -19,8 +19,6 @@ export default {
     return handleAPIRequest(request, {
       loadJSON,
       loadStatus: () => buildSystemStatus({ env, fetchImpl: fetch }),
-      dispatchMonitor: () => dispatchMonitorWorkflow(fetch, env),
-      dispatchToken: env.WORKFLOW_DISPATCH_TOKEN,
       loadProbe: async (ids) => {
         const catalog = await loadCatalog(loadJSON);
         const byID = new Map(catalog.sources.map((source) => [source.id, source]));
@@ -67,51 +65,17 @@ export async function dispatchMonitorWorkflow(fetchImpl = fetch, env = {}) {
 
 export async function handleAPIRequest(
   request,
-  { loadJSON, loadStatus, loadProbe, dispatchMonitor, dispatchToken }
+  { loadJSON, loadStatus, loadProbe }
 ) {
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: jsonHeaders });
   }
-
-  const url = new URL(request.url);
-  const pathname = url.pathname.replace(/\/+$/, "") || "/";
-  if (pathname === "/api/v1/health/dispatch") {
-    if (request.method !== "POST") {
-      return json({ error: "method_not_allowed" }, 405);
-    }
-    if (!authorizedDispatchRequest(request, dispatchToken)) {
-      return json({ error: "unauthorized" }, 401, {
-        "Cache-Control": "no-store",
-      });
-    }
-    try {
-      if (typeof dispatchMonitor !== "function") {
-        throw new Error("dispatch provider is unavailable");
-      }
-      const dispatched = await dispatchMonitor();
-      return json(
-        {
-          ok: dispatched,
-          dispatchedAt: new Date().toISOString(),
-        },
-        dispatched ? 202 : 502,
-        { "Cache-Control": "no-store" }
-      );
-    } catch (error) {
-      return json(
-        {
-          ok: false,
-          error: "dispatch_failed",
-          message: String(error?.message || error),
-        },
-        502,
-        { "Cache-Control": "no-store" }
-      );
-    }
-  }
   if (request.method !== "GET") {
     return json({ error: "method_not_allowed" }, 405);
   }
+
+  const url = new URL(request.url);
+  const pathname = url.pathname.replace(/\/+$/, "") || "/";
   if (pathname === "/api/v1" || pathname === "/api" || pathname === "/api/") {
     return json({
       apiVersion: "v1",
@@ -276,24 +240,6 @@ export async function handleAPIRequest(
   }
 
   return json({ error: "not_found", message: "API 路径不存在" }, 404);
-}
-
-function authorizedDispatchRequest(request, token) {
-  const expected = String(token || "").trim();
-  const actual = String(request.headers.get("Authorization") || "").trim();
-  if (!expected || !actual.startsWith("Bearer ")) return false;
-  return secureEqual(actual.slice("Bearer ".length), expected);
-}
-
-function secureEqual(left, right) {
-  const a = String(left);
-  const b = String(right);
-  let diff = a.length ^ b.length;
-  const length = Math.max(a.length, b.length);
-  for (let index = 0; index < length; index += 1) {
-    diff |= a.charCodeAt(index) ^ b.charCodeAt(index);
-  }
-  return diff === 0;
 }
 
 export function querySources(sources, searchParams) {
