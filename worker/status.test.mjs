@@ -151,9 +151,12 @@ test("builds an end-to-end healthy status with workflow steps", async () => {
 
   assert.equal(status.overall, "healthy");
   assert.equal(status.summary.label, "整条链路运行正常");
-  assert.equal(status.checks.length, 5);
+  assert.equal(status.checks.length, 6);
   assert.equal(status.consistency.status, "success");
   assert.equal(status.snapshotAt, generatedAt);
+  const schedule = status.checks.find((item) => item.id === "schedule");
+  assert.equal(schedule.status, "success");
+  assert.match(schedule.detail, /定时守护/);
   assert.equal(status.workflows[0].steps.length, 2);
   assert.equal(status.workflows[0].steps[0].name, "Probe CMS sources");
   assert.equal(status.workflows.length, 3);

@@ -2790,6 +2790,13 @@ tags: 稳定, 高清</pre>
             checkedAt: new Date().toISOString()
           },
           {
+            id: "schedule",
+            title: "定时调度",
+            status: "unknown",
+            detail: "状态接口不可用，无法检查定时守护与 Worker Cron。",
+            checkedAt: new Date().toISOString()
+          },
+          {
             id: "freshness",
             title: "数据新鲜度",
             status: fresh ? "success" : generatedAt ? "warning" : "unknown",

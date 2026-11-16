@@ -56,22 +56,18 @@ export async function buildSystemStatus(
     "线路检测",
     "最近一次检测工作流"
   );
+  const scheduleCheck = schedulingCheck(watchdogWorkflow, workerWorkflow);
   const pagesCheck = probeCheck(
     pages,
     "页面发布",
     "sources.yychuiyan.com/data/stats.json"
   );
   const cosCheck = combineCOSChecks(cosData, cosAPI);
-  const apiStatus =
-    workerWorkflow.status === "failure" ? "warning" : "success";
   const apiCheck = {
     id: "api",
     title: "自有 API",
-    status: apiStatus,
-    detail:
-      workerWorkflow.status === "failure"
-        ? "状态接口可访问，但最近一次 Worker 部署失败"
-        : "Worker 状态接口已在当前请求中正常响应",
+    status: "success",
+    detail: "Worker 状态接口已在当前请求中正常响应",
     latencyMs: null,
     checkedAt: checkedAt.toISOString(),
     href: workerWorkflow.url,
@@ -117,6 +113,7 @@ export async function buildSystemStatus(
     pagesCheck,
     cosCheck,
     apiCheck,
+    scheduleCheck,
     freshnessCheck,
   ];
   const attention = checks.filter((item) => item.status !== "success");
@@ -308,6 +305,42 @@ function workflowCheck(workflow, title, detail) {
     latencyMs: null,
     checkedAt: workflow.updatedAt,
     href: workflow.url,
+  };
+}
+
+function schedulingCheck(watchdog, worker) {
+  const watchdogActive = ["running", "success"].includes(watchdog.status);
+  const workerActive = worker.status === "success";
+  if (watchdogActive) {
+    return {
+      id: "schedule",
+      title: "定时调度",
+      status: "success",
+      detail: "定时守护运行中，每 15 分钟派发一次线路检测",
+      latencyMs: null,
+      checkedAt: watchdog.updatedAt,
+      href: watchdog.url,
+    };
+  }
+  if (workerActive) {
+    return {
+      id: "schedule",
+      title: "定时调度",
+      status: "success",
+      detail: "Cloudflare Worker Cron 已正常部署",
+      latencyMs: null,
+      checkedAt: worker.updatedAt,
+      href: worker.url,
+    };
+  }
+  return {
+    id: "schedule",
+    title: "定时调度",
+    status: "warning",
+    detail: "定时守护未在运行，Worker Cron 也不可用",
+    latencyMs: null,
+    checkedAt: watchdog.updatedAt || worker.updatedAt,
+    href: watchdog.url,
   };
 }
 
