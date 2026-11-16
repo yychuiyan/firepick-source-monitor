@@ -42,6 +42,23 @@ function mockFetch({ monitorFailure = false, cosAPIFailure = false } = {}) {
         ],
       });
     }
+    if (href.includes("/workflows/monitor-watchdog.yml/runs")) {
+      return Response.json({
+        workflow_runs: [
+          {
+            id: 303,
+            run_number: 3,
+            status: "in_progress",
+            conclusion: null,
+            event: "schedule",
+            created_at: "2026-11-15T09:35:00.000Z",
+            run_started_at: "2026-11-15T09:35:10.000Z",
+            updated_at: "2026-11-15T09:40:00.000Z",
+            html_url: "https://github.com/example/actions/runs/303",
+          },
+        ],
+      });
+    }
     if (href.includes("/actions/runs/101/jobs")) {
       return Response.json({
         jobs: [
@@ -86,6 +103,24 @@ function mockFetch({ monitorFailure = false, cosAPIFailure = false } = {}) {
         ],
       });
     }
+    if (href.includes("/actions/runs/303/jobs")) {
+      return Response.json({
+        jobs: [
+          {
+            steps: [
+              {
+                number: 1,
+                name: "Dispatch the monitor every 15 minutes",
+                status: "in_progress",
+                conclusion: null,
+                started_at: "2026-11-15T09:35:15.000Z",
+                completed_at: null,
+              },
+            ],
+          },
+        ],
+      });
+    }
     if (cosAPIFailure && href.includes("/api/v1/stats.json")) {
       return new Response("unavailable", { status: 503 });
     }
@@ -121,6 +156,8 @@ test("builds an end-to-end healthy status with workflow steps", async () => {
   assert.equal(status.snapshotAt, generatedAt);
   assert.equal(status.workflows[0].steps.length, 2);
   assert.equal(status.workflows[0].steps[0].name, "Probe CMS sources");
+  assert.equal(status.workflows.length, 3);
+  assert.equal(status.workflows[2].status, "running");
   assert.equal(status.snapshots.length, 3);
 });
 

@@ -50,3 +50,20 @@ jobs:
       - name: Deploy Worker and cron trigger
         if: steps.config.outputs.configured == 'true'
         run: npx --yes wrangler@4.162.0 deploy
+      - name: Verify Worker can dispatch the monitor
+        if: steps.config.outputs.configured == 'true'
+        run: |
+          set -euo pipefail
+          sleep 2
+          status="$(curl -sS \
+            -o "$RUNNER_TEMP/dispatch.json" \
+            -w '%{http_code}' \
+            -X POST \
+            -H "Authorization: Bearer ${WORKFLOW_DISPATCH_TOKEN}" \
+            https://sources.yychuiyan.com/api/v1/health/dispatch)"
+          if [ "$status" != "202" ]; then
+            cat "$RUNNER_TEMP/dispatch.json"
+            echo "Worker workflow dispatch verification failed with HTTP ${status}"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/dispatch.json"

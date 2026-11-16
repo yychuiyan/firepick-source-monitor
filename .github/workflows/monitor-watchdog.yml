@@ -1,0 +1,34 @@
+name: monitor-watchdog
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "5 */6 * * *"
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: firepick-source-monitor-watchdog
+  cancel-in-progress: false
+
+jobs:
+  keep-fresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Dispatch the monitor every 15 minutes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for index in $(seq 1 23); do
+            gh workflow run monitor.yml \
+              --repo "${GITHUB_REPOSITORY}" \
+              --ref main
+            echo "Dispatched monitor run ${index}/23"
+            if [ "$index" -lt 23 ]; then
+              sleep 900
+            fi
+          done

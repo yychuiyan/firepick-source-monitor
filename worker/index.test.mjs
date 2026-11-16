@@ -130,6 +130,31 @@ test("does not dispatch without a Worker token", async () => {
   assert.equal(called, false);
 });
 
+test("verifies the protected dispatch health endpoint", async () => {
+  let dispatched = 0;
+  const request = (authorization) =>
+    new Request("https://api.example/api/v1/health/dispatch", {
+      method: "POST",
+      headers: authorization ? { Authorization: authorization } : {},
+    });
+
+  const denied = await handleAPIRequest(request("Bearer wrong"), {
+    dispatchToken: "secret",
+  });
+  assert.equal(denied.status, 401);
+
+  const accepted = await handleAPIRequest(request("Bearer secret"), {
+    dispatchToken: "secret",
+    dispatchMonitor: async () => {
+      dispatched += 1;
+      return true;
+    },
+  });
+  assert.equal(accepted.status, 202);
+  assert.equal(dispatched, 1);
+  assert.equal((await accepted.json()).ok, true);
+});
+
 test("loads the latest API snapshot from COS before the bundled asset", async () => {
   let requested;
   const payload = { generatedAt: "fresh", total: 3 };

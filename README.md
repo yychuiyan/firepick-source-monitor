@@ -193,6 +193,11 @@ Cron 触发时，Worker 会调用 GitHub `workflow_dispatch` 启动 `monitor.yml
 - `CLOUDFLARE_ACCOUNT_ID`
 - `WORKFLOW_DISPATCH_TOKEN`
 
+`deploy-worker` 部署完成后会调用受保护的
+`POST /api/v1/health/dispatch`，实际验证 Worker、Token 和 GitHub
+`workflow_dispatch` 整条触发链是否可用。该请求使用
+`Authorization: Bearer <WORKFLOW_DISPATCH_TOKEN>`。
+
 ## 网页面板
 
 `public/index.html` 提供浅色和深色主题，首次访问跟随系统设置，之后会记住
@@ -214,9 +219,14 @@ Cron 触发时，Worker 会调用 GitHub `workflow_dispatch` 启动 `monitor.yml
 
 GitHub Actions 工作流位于 `.github/workflows/monitor.yml`，会在以下时机运行：
 
-- 每 15 分钟定时检测；
+- 每 15 分钟由定时调度或 Worker Cron 触发检测；
 - 推送到 `main` 分支时；
 - 手动触发时。
+
+由于 GitHub `schedule` 在公共仓库中可能延迟或跳过，
+`.github/workflows/monitor-watchdog.yml` 每 6 小时启动一次长时守护任务，
+在单次作业中每 15 分钟派发一次检测，连续维持约 5.5 小时。Cloudflare
+Worker Cron、GitHub 短周期调度和长时守护任务共同作为更新兜底。
 
 检测完成后，`public/` 会发布到 GitHub Pages。网页地址为：
 

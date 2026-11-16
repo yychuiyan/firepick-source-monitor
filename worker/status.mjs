@@ -6,6 +6,7 @@ const DEFAULT_REPOSITORY = "yychuiyan/firepick-source-monitor";
 const WORKFLOWS = [
   { id: "monitor", name: "线路检测与发布", workflow: "monitor.yml" },
   { id: "worker", name: "Worker 部署", workflow: "deploy-worker.yml" },
+  { id: "watchdog", name: "定时守护", workflow: "monitor-watchdog.yml" },
 ];
 
 export async function buildSystemStatus(
@@ -21,10 +22,18 @@ export async function buildSystemStatus(
   ).replace(/\/+$/, "");
   const cacheBust = checkedAt.getTime();
 
-  const [monitorWorkflow, workerWorkflow, pages, cosData, cosAPI] =
+  const [
+    monitorWorkflow,
+    workerWorkflow,
+    watchdogWorkflow,
+    pages,
+    cosData,
+    cosAPI,
+  ] =
     await Promise.all([
       fetchWorkflowStatus(WORKFLOWS[0], env, fetchImpl),
       fetchWorkflowStatus(WORKFLOWS[1], env, fetchImpl),
+      fetchWorkflowStatus(WORKFLOWS[2], env, fetchImpl),
       probeJSON(
         "页面数据",
         `${publicOrigin}/data/stats.json?health=${cacheBust}`,
@@ -150,7 +159,7 @@ export async function buildSystemStatus(
     consistency,
     checks,
     snapshots,
-    workflows: [monitorWorkflow, workerWorkflow],
+    workflows: [monitorWorkflow, workerWorkflow, watchdogWorkflow],
   };
 }
 
