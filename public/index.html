@@ -1466,8 +1466,8 @@
       .section { margin-top: 28px; }
       .section-head { display: block; }
       .section-head p { margin-top: 9px; text-align: left; }
-      #lines .section-head { margin-bottom: 12px; }
-      #lines .section-head p { display: none; }
+      #linesPage .section-head { margin-bottom: 12px; }
+      #linesPage .section-head p { display: none; }
       .toolbar { grid-template-columns: 1fr 1fr; }
       .search-field { grid-column: 1 / -1; }
       .view-switch { grid-column: 1 / -1; justify-self: end; }
@@ -1619,7 +1619,7 @@ tags: 稳定, 高清</pre>
         <h1 id="heroTitle">把可用的线路，<br><span>留在播放之前。</span></h1>
         <p>逐站检查列表、搜索、详情和播放地址，再结合画质、延迟与稳定性排出线路优先级。</p>
         <div class="hero-actions">
-          <a class="action primary" href="#lines">
+          <a id="viewOnlineLines" class="action primary" href="#lines">
             查看在线线路
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
           </a>
@@ -1664,7 +1664,7 @@ tags: 稳定, 高清</pre>
     </div>
     </div>
 
-    <section id="lines" class="section view" aria-labelledby="linesTitle">
+    <section id="linesPage" class="section view" aria-labelledby="linesTitle">
       <div class="section-head">
         <div>
           <div class="section-kicker">SOURCE OBSERVATORY</div>
@@ -1757,7 +1757,7 @@ tags: 稳定, 高清</pre>
       </div>
     </section>
 
-    <section id="insights" class="section view" aria-labelledby="insightsTitle" hidden>
+    <section id="insightsPage" class="section view" aria-labelledby="insightsTitle" hidden>
       <div class="section-head">
         <div>
           <div class="section-kicker">OPERATIONS SNAPSHOT</div>
@@ -1805,7 +1805,7 @@ tags: 稳定, 高清</pre>
       </div>
     </section>
 
-    <section id="status" class="section view" aria-labelledby="statusTitle" hidden>
+    <section id="statusPage" class="section view" aria-labelledby="statusTitle" hidden>
       <div class="section-head">
         <div>
           <div class="section-kicker">END-TO-END HEALTH</div>
@@ -1861,7 +1861,7 @@ tags: 稳定, 高清</pre>
       </div>
     </section>
 
-    <section id="method" class="section view" aria-labelledby="methodTitle" hidden>
+    <section id="methodPage" class="section view" aria-labelledby="methodTitle" hidden>
       <div class="section-head">
         <div>
           <div class="section-kicker">HOW IT WORKS</div>
@@ -2497,8 +2497,7 @@ tags: 稳定, 高清</pre>
           state.page = 1;
           $("#tagFilter").value = tag;
           renderResults();
-          activatePage("lines");
-          if (location.hash !== "#lines") location.hash = "lines";
+          showLinesAtResults();
         });
         cloud.append(button);
       });
@@ -3004,10 +3003,10 @@ tags: 稳定, 高清</pre>
       const selected = Object.hasOwn(PAGE_META, page) ? page : "lines";
       document.body.dataset.view = selected;
       $("#overviewView").hidden = selected !== "lines";
-      $("#lines").hidden = selected !== "lines";
-      $("#insights").hidden = selected !== "insights";
-      $("#status").hidden = selected !== "status";
-      $("#method").hidden = selected !== "method";
+      $("#linesPage").hidden = selected !== "lines";
+      $("#insightsPage").hidden = selected !== "insights";
+      $("#statusPage").hidden = selected !== "status";
+      $("#methodPage").hidden = selected !== "method";
       document.querySelectorAll(".main-nav a").forEach((link) => {
         const active = link.hash === `#${selected}`;
         link.classList.toggle("active", active);
@@ -3205,9 +3204,19 @@ tags: 稳定, 高清</pre>
       state.page = 1;
       $("#sort").value = sort;
       renderResults();
-      activatePage("lines");
-      if (location.hash !== "#lines") location.hash = "lines";
+      showLinesAtResults();
     }
+    function showLinesAtResults() {
+      if (location.hash !== "#lines") history.pushState(null, "", "#lines");
+      activatePage("lines");
+      requestAnimationFrame(() => {
+        $("#resultPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+    $("#viewOnlineLines").addEventListener("click", (event) => {
+      event.preventDefault();
+      showLinesAtResults();
+    });
     $("#insightFastAction").addEventListener("click", () => openInsight("online", "speed"));
     $("#insightQualityAction").addEventListener("click", () => openInsight("quality", "quality"));
     $("#insightSlowAction").addEventListener("click", () => openInsight("slow", "speed"));
